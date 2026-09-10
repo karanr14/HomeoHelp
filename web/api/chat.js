@@ -3,7 +3,6 @@ import fs from "node:fs";
 
 // ==========================================
 // AI MODEL
-// Lightweight and fast model
 // ==========================================
 
 const MODEL =
@@ -23,10 +22,7 @@ const CSV_PATH = new URL(
 
 // ==========================================
 // CSV PARSER
-// Supports:
-// - commas
-// - quoted text
-// - multi-line indications
+// Supports commas and multi-line fields
 // ==========================================
 
 function parseCSV(text) {
@@ -60,10 +56,7 @@ function parseCSV(text) {
     }
 
 
-    else if (
-      char === "," &&
-      !inQuotes
-    ) {
+    else if (char === "," && !inQuotes) {
 
       row.push(field.trim());
       field = "";
@@ -89,9 +82,7 @@ function parseCSV(text) {
 
 
       if (
-        row.some(
-          value => value !== ""
-        )
+        row.some(value => value !== "")
       ) {
         rows.push(row);
       }
@@ -111,41 +102,37 @@ function parseCSV(text) {
   }
 
 
-  // ADD FINAL FIELD
+  // Add final field
 
   row.push(field.trim());
 
 
-  // ADD FINAL ROW
+  // Add final row
 
   if (
-    row.some(
-      value => value !== ""
-    )
+    row.some(value => value !== "")
   ) {
     rows.push(row);
   }
 
 
-  // HEADERS
+  // Get headers
 
   const headers = rows.shift();
 
 
-  // CREATE OBJECTS
+  // Convert rows into objects
 
   return rows.map((row) => {
 
     const obj = {};
 
-    headers.forEach(
-      (header, index) => {
+    headers.forEach((header, index) => {
 
-        obj[header.trim()] =
-          row[index] ?? "";
+      obj[header.trim()] =
+        row[index] ?? "";
 
-      }
-    );
+    });
 
     return obj;
 
@@ -155,7 +142,7 @@ function parseCSV(text) {
 
 
 // ==========================================
-// EXTRACT SEARCH WORDS
+// GET SEARCH WORDS
 // ==========================================
 
 function words(text) {
@@ -199,13 +186,13 @@ function rank(
 
     .map((row) => {
 
-      const text = (
+      const searchableText = (
 
-        row.product_name +
+        (row.product_name || "") +
 
         " " +
 
-        row.indications
+        (row.indications || "")
 
       ).toLowerCase();
 
@@ -216,11 +203,9 @@ function rank(
       terms.forEach((term) => {
 
         if (
-          text.includes(term)
+          searchableText.includes(term)
         ) {
-
           score++;
-
         }
 
       });
@@ -238,18 +223,13 @@ function rank(
 
 
     .filter(
-
-      item =>
-        item._score > 0
-
+      item => item._score > 0
     )
 
 
     .sort(
-
       (a, b) =>
         b._score - a._score
-
     )
 
 
@@ -259,25 +239,51 @@ function rank(
 
 
 // ==========================================
-// CLEAN AI RESPONSE
+// EXTRACT JSON FROM AI RESPONSE
 // ==========================================
 
-function cleanJSON(text) {
+function extractJSON(text) {
 
-  return text
+  // Remove markdown if AI uses it
 
-    .replace(/```json/g, "")
-
+  text = text
+    .replace(/```json/gi, "")
     .replace(/```/g, "")
-
     .trim();
+
+
+  // Find JSON object
+
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+
+
+  if (
+    start === -1 ||
+    end === -1
+  ) {
+
+    throw new Error(
+      "AI did not return a valid response"
+    );
+
+  }
+
+
+  const jsonText = text.slice(
+    start,
+    end + 1
+  );
+
+
+  return JSON.parse(jsonText);
 
 }
 
 
 // ==========================================
 // ASK AI
-// TOKEN-OPTIMIZED VERSION
+// NO STRICT JSON MODE
 // ==========================================
 
 async function askAI(
@@ -287,18 +293,18 @@ async function askAI(
 ) {
 
 
-  // ONLY SEND 6 CANDIDATES
-  // AND LIMIT INDICATION TEXT
+  // Send only 5 candidates
+  // Keep token usage low
 
   const compactCandidates =
 
     candidates
 
-      .slice(0, 6)
+      .slice(0, 5)
 
       .map((item) => ({
 
-        name:
+        medicine:
           item.product_name,
 
         indications:
@@ -307,40 +313,58 @@ async function askAI(
 
             .replace(/\s+/g, " ")
 
-            .slice(0, 350)
+            .slice(0, 250)
 
       }));
 
 
-  const prompt = `You narrow database records.
+  const prompt = `
+You are a database narrowing assistant.
 
 You are NOT a doctor.
-Do not diagnose or recommend treatment.
+Do not diagnose.
+Do not prescribe.
+Do not recommend treatment.
 
-User:
+Your task is ONLY to narrow database records.
+
+USER MESSAGE:
 ${message}
 
-Previous answers:
-${(state.answers || []).slice(-4).join(" | ") || "None"}
+PREVIOUS ANSWERS:
+${(state.answers || [])
+  .slice(-4)
+  .join(" | ") || "None"}
 
-Candidates:
+CANDIDATES:
 ${JSON.stringify(compactCandidates)}
 
-Ask ONE short question that best separates these candidates.
+Ask exactly ONE short question that helps separate the candidates.
 
-Return JSON only:
+Only ask about characteristics found in the candidate indications.
+
+Do not ask for information already given.
+
+Your entire response MUST be exactly one JSON object.
+
+If you need another question:
 
 {
-  "action":"question",
-  "question":"...",
-  "options":["...","...","Not sure"]
+  "action": "question",
+  "question": "short question",
+  "options": [
+    "Option 1",
+    "Option 2",
+    "Not sure"
+  ]
 }
 
-Or:
+If no more question is needed:
 
 {
-  "action":"results"
-}`;
+  "action": "results"
+}
+`;
 
 
   const res = await fetch(
@@ -369,21 +393,10 @@ Or:
         model: MODEL,
 
 
-        temperature: 0.3,
+        temperature: 0.2,
 
 
-        // VERY LOW OUTPUT
-        // We only need one question
-
-        max_tokens: 180,
-
-
-        response_format: {
-
-          type:
-            "json_object"
-
-        },
+        max_completion_tokens: 300,
 
 
         messages: [
@@ -393,7 +406,7 @@ Or:
             role: "system",
 
             content:
-              "Return valid JSON only."
+              "Return only a JSON object. No explanation."
 
           },
 
@@ -402,8 +415,7 @@ Or:
 
             role: "user",
 
-            content:
-              prompt
+            content: prompt
 
           }
 
@@ -416,7 +428,7 @@ Or:
   );
 
 
-  // CHECK ERROR
+  // Check AI provider error
 
   if (!res.ok) {
 
@@ -438,17 +450,22 @@ Or:
     await res.json();
 
 
-  return JSON.parse(
+  const aiText =
+    data.choices?.[0]
+      ?.message
+      ?.content;
 
-    cleanJSON(
 
-      data.choices[0]
-        .message
-        .content
+  if (!aiText) {
 
-    )
+    throw new Error(
+      "AI returned an empty response"
+    );
 
-  );
+  }
+
+
+  return extractJSON(aiText);
 
 }
 
@@ -463,14 +480,15 @@ export default async function handler(
 ) {
 
 
+  // Only allow POST
+
   if (
     req.method !== "POST"
   ) {
 
     return res.status(405).json({
 
-      error:
-        "POST only"
+      error: "POST only"
 
     });
 
@@ -480,7 +498,7 @@ export default async function handler(
   try {
 
 
-    // CHECK API KEY
+    // Check API key
 
     if (
       !process.env.GROQ_API_KEY
@@ -495,7 +513,7 @@ export default async function handler(
     }
 
 
-    // GET REQUEST DATA
+    // Get user data
 
     const {
 
@@ -512,18 +530,18 @@ export default async function handler(
     } = req.body || {};
 
 
+    // Check message
+
     if (!message) {
 
       throw new Error(
-
         "Missing message"
-
       );
 
     }
 
 
-    // READ CSV
+    // Read CSV
 
     const csvText =
       fs.readFileSync(
@@ -539,7 +557,7 @@ export default async function handler(
       parseCSV(csvText);
 
 
-    // SAVE ANSWER
+    // Save answers
 
     const answers = [
 
@@ -550,7 +568,7 @@ export default async function handler(
     ];
 
 
-    // ORIGINAL QUESTION
+    // Original user message
 
     const rootQuery =
 
@@ -559,7 +577,7 @@ export default async function handler(
       message;
 
 
-    // FIND MATCHES
+    // Find candidates
 
     const candidates = rank(
 
@@ -572,16 +590,15 @@ export default async function handler(
     );
 
 
-    // NO RESULTS
+    // No matches
 
     if (
-      !candidates.length
+      candidates.length === 0
     ) {
 
       return res.status(200).json({
 
-        type:
-          "results",
+        type: "results",
 
         results: [],
 
@@ -601,8 +618,8 @@ export default async function handler(
     }
 
 
-    // STOP AFTER 5 QUESTIONS
-    // OR 3 CANDIDATES
+    // Stop after 5 questions
+    // or when only 3 candidates remain
 
     if (
 
@@ -614,8 +631,7 @@ export default async function handler(
 
       return res.status(200).json({
 
-        type:
-          "results",
+        type: "results",
 
         results:
 
@@ -637,10 +653,9 @@ export default async function handler(
     }
 
 
-    // ASK AI
+    // Ask AI
 
     const ai =
-
       await askAI(
 
         message,
@@ -658,7 +673,7 @@ export default async function handler(
       );
 
 
-    // NEW STATE
+    // Save state
 
     const newState = {
 
@@ -672,7 +687,7 @@ export default async function handler(
     };
 
 
-    // SHOW RESULTS
+    // AI wants results
 
     if (
       ai.action === "results"
@@ -680,8 +695,7 @@ export default async function handler(
 
       return res.status(200).json({
 
-        type:
-          "results",
+        type: "results",
 
         results:
 
@@ -695,15 +709,16 @@ export default async function handler(
     }
 
 
-    // SHOW QUESTION
+    // Return AI question
 
     return res.status(200).json({
 
-      type:
-        "question",
+      type: "question",
 
       question:
-        ai.question,
+
+        ai.question ||
+        "Could you provide a little more detail?",
 
 
       options:
@@ -729,6 +744,8 @@ export default async function handler(
 
   }
 
+
+  // Handle errors
 
   catch (error) {
 
