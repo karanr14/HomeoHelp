@@ -1,17 +1,32 @@
 import fs from "node:fs";
 
-const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
 
-// CSV FILE IS IN THE SAME FOLDER AS chat.js
-const CSV_PATH = new URL("./sbl_indications.csv", import.meta.url);
+// ==========================================
+// AI MODEL
+// Lightweight and fast model
+// ==========================================
+
+const MODEL =
+  process.env.GROQ_MODEL ||
+  "llama-3.1-8b-instant";
 
 
 // ==========================================
-// PROPER CSV PARSER
-// SUPPORTS:
-// - Commas inside quotes
-// - Multiple lines inside quotes
-// - Double quotes inside text
+// CSV FILE
+// ==========================================
+
+const CSV_PATH = new URL(
+  "./sbl_indications.csv",
+  import.meta.url
+);
+
+
+// ==========================================
+// CSV PARSER
+// Supports:
+// - commas
+// - quoted text
+// - multi-line indications
 // ==========================================
 
 function parseCSV(text) {
@@ -20,7 +35,6 @@ function parseCSV(text) {
 
   let row = [];
   let field = "";
-
   let inQuotes = false;
 
 
@@ -30,12 +44,7 @@ function parseCSV(text) {
     const nextChar = text[i + 1];
 
 
-    // HANDLE QUOTES
-
     if (char === '"') {
-
-      // DOUBLE QUOTE INSIDE QUOTED TEXT
-      // Example: "He said ""hello"""
 
       if (inQuotes && nextChar === '"') {
 
@@ -51,8 +60,10 @@ function parseCSV(text) {
     }
 
 
-    // COMMA = NEXT COLUMN
-    else if (char === "," && !inQuotes) {
+    else if (
+      char === "," &&
+      !inQuotes
+    ) {
 
       row.push(field.trim());
       field = "";
@@ -60,41 +71,29 @@ function parseCSV(text) {
     }
 
 
-    // NEW LINE = NEXT ROW
-    // ONLY WHEN NOT INSIDE QUOTES
-
     else if (
       (char === "\n" || char === "\r") &&
       !inQuotes
     ) {
 
-      // HANDLE WINDOWS \r\n
-
       if (
         char === "\r" &&
         nextChar === "\n"
       ) {
-
         i++;
-
       }
 
 
       row.push(field.trim());
-
       field = "";
 
-
-      // ADD ROW IF NOT EMPTY
 
       if (
         row.some(
           value => value !== ""
         )
       ) {
-
         rows.push(row);
-
       }
 
 
@@ -102,8 +101,6 @@ function parseCSV(text) {
 
     }
 
-
-    // NORMAL CHARACTER
 
     else {
 
@@ -114,35 +111,32 @@ function parseCSV(text) {
   }
 
 
-  // ADD LAST FIELD
+  // ADD FINAL FIELD
 
   row.push(field.trim());
 
 
-  // ADD LAST ROW
+  // ADD FINAL ROW
 
   if (
     row.some(
       value => value !== ""
     )
   ) {
-
     rows.push(row);
-
   }
 
 
-  // GET HEADERS
+  // HEADERS
 
   const headers = rows.shift();
 
 
-  // CONVERT ROWS TO OBJECTS
+  // CREATE OBJECTS
 
   return rows.map((row) => {
 
     const obj = {};
-
 
     headers.forEach(
       (header, index) => {
@@ -153,7 +147,6 @@ function parseCSV(text) {
       }
     );
 
-
     return obj;
 
   });
@@ -162,7 +155,7 @@ function parseCSV(text) {
 
 
 // ==========================================
-// GET SEARCH WORDS
+// EXTRACT SEARCH WORDS
 // ==========================================
 
 function words(text) {
@@ -172,9 +165,7 @@ function words(text) {
     ...new Set(
 
       (text || "")
-
         .toLowerCase()
-
         .match(/[a-z]{3,}/g)
 
       || []
@@ -187,7 +178,7 @@ function words(text) {
 
 
 // ==========================================
-// RANK MEDICINE RECORDS
+// RANK MEDICINES
 // ==========================================
 
 function rank(
@@ -198,7 +189,8 @@ function rank(
 
   const terms = words(
 
-    query + " " + answers.join(" ")
+    query + " " +
+    answers.join(" ")
 
   );
 
@@ -207,16 +199,13 @@ function rank(
 
     .map((row) => {
 
-
-      // SEARCH MAINLY IN INDICATIONS
-
       const text = (
 
-        (row.product_name || "") +
+        row.product_name +
 
         " " +
 
-        (row.indications || "")
+        row.indications
 
       ).toLowerCase();
 
@@ -226,9 +215,11 @@ function rank(
 
       terms.forEach((term) => {
 
-        if (text.includes(term)) {
+        if (
+          text.includes(term)
+        ) {
 
-          score += 1;
+          score++;
 
         }
 
@@ -246,35 +237,29 @@ function rank(
     })
 
 
-    // REMOVE ZERO SCORE RESULTS
-
     .filter(
 
-      item => item._score > 0
+      item =>
+        item._score > 0
 
     )
 
 
-    // HIGHEST SCORE FIRST
-
     .sort(
 
       (a, b) =>
-
         b._score - a._score
 
     )
 
 
-    // KEEP TOP 12
-
-    .slice(0, 12);
+    .slice(0, 10);
 
 }
 
 
 // ==========================================
-// CLEAN AI JSON
+// CLEAN AI RESPONSE
 // ==========================================
 
 function cleanJSON(text) {
@@ -291,7 +276,8 @@ function cleanJSON(text) {
 
 
 // ==========================================
-// ASK GROQ AI
+// ASK AI
+// TOKEN-OPTIMIZED VERSION
 // ==========================================
 
 async function askAI(
@@ -301,82 +287,60 @@ async function askAI(
 ) {
 
 
-  const prompt = `You are an educational dataset narrowing assistant.
+  // ONLY SEND 6 CANDIDATES
+  // AND LIMIT INDICATION TEXT
+
+  const compactCandidates =
+
+    candidates
+
+      .slice(0, 6)
+
+      .map((item) => ({
+
+        name:
+          item.product_name,
+
+        indications:
+
+          (item.indications || "")
+
+            .replace(/\s+/g, " ")
+
+            .slice(0, 350)
+
+      }));
+
+
+  const prompt = `You narrow database records.
 
 You are NOT a doctor.
+Do not diagnose or recommend treatment.
 
-Do NOT:
-- diagnose
-- prescribe
-- recommend treatment
-- claim a medicine is medically suitable
-
-Your only task is to narrow DATABASE ENTRIES.
-
-The database contains medicine names and their associated indications.
-
-USER MESSAGE:
-
+User:
 ${message}
 
+Previous answers:
+${(state.answers || []).slice(-4).join(" | ") || "None"}
 
-PREVIOUS ANSWERS:
+Candidates:
+${JSON.stringify(compactCandidates)}
 
-${(state.answers || []).join(" | ") || "none"}
+Ask ONE short question that best separates these candidates.
 
-
-CANDIDATE MEDICINES:
-
-${JSON.stringify(
-
-  candidates.map((item) => ({
-
-    medicine_name: item.product_name,
-
-    indications: item.indications
-
-  }))
-
-)}
-
-
-TASK:
-
-Ask exactly ONE short and neutral follow-up question.
-
-The question should help separate the remaining medicine records.
-
-Only ask about characteristics represented in the candidate records.
-
-Do not ask for information already provided.
-
-Prefer a question that can eliminate several candidates.
-
-Return ONLY valid JSON.
-
-If another question is needed:
+Return JSON only:
 
 {
-  "action": "question",
-  "question": "your question here",
-  "options": [
-    "Option 1",
-    "Option 2",
-    "Not sure"
-  ]
+  "action":"question",
+  "question":"...",
+  "options":["...","...","Not sure"]
 }
 
-If sufficiently narrowed:
+Or:
 
 {
-  "action": "results"
-}
-
-Do not return markdown.
-
-Do not return explanations.
-
-Return JSON only.`;
+  "action":"results"
+}`;
 
 
   const res = await fetch(
@@ -390,12 +354,11 @@ Return JSON only.`;
 
       headers: {
 
-        "Content-Type": "application/json",
+        "Content-Type":
+          "application/json",
 
         "Authorization":
-
           "Bearer " +
-
           process.env.GROQ_API_KEY
 
       },
@@ -406,21 +369,19 @@ Return JSON only.`;
         model: MODEL,
 
 
-        temperature: 0.2,
+        temperature: 0.3,
 
 
-        max_completion_tokens: 500,
+        // VERY LOW OUTPUT
+        // We only need one question
 
-
-        reasoning_effort: "low",
-
-
-        reasoning_format: "hidden",
+        max_tokens: 180,
 
 
         response_format: {
 
-          type: "json_object"
+          type:
+            "json_object"
 
         },
 
@@ -429,9 +390,20 @@ Return JSON only.`;
 
           {
 
+            role: "system",
+
+            content:
+              "Return valid JSON only."
+
+          },
+
+
+          {
+
             role: "user",
 
-            content: prompt
+            content:
+              prompt
 
           }
 
@@ -444,33 +416,35 @@ Return JSON only.`;
   );
 
 
-  // CHECK GROQ ERROR
+  // CHECK ERROR
 
   if (!res.ok) {
+
+    const errorText =
+      await res.text();
+
 
     throw new Error(
 
       "AI provider error: " +
-
-      await res.text()
+      errorText
 
     );
 
   }
 
 
-  // GET AI RESPONSE
+  const data =
+    await res.json();
 
-  const data = await res.json();
-
-
-  // PARSE AI JSON
 
   return JSON.parse(
 
     cleanJSON(
 
-      data.choices[0].message.content
+      data.choices[0]
+        .message
+        .content
 
     )
 
@@ -489,13 +463,14 @@ export default async function handler(
 ) {
 
 
-  // ONLY ALLOW POST
-
-  if (req.method !== "POST") {
+  if (
+    req.method !== "POST"
+  ) {
 
     return res.status(405).json({
 
-      error: "POST only"
+      error:
+        "POST only"
 
     });
 
@@ -507,7 +482,9 @@ export default async function handler(
 
     // CHECK API KEY
 
-    if (!process.env.GROQ_API_KEY) {
+    if (
+      !process.env.GROQ_API_KEY
+    ) {
 
       throw new Error(
 
@@ -518,15 +495,13 @@ export default async function handler(
     }
 
 
-    // GET USER DATA
+    // GET REQUEST DATA
 
     const {
 
       message,
 
       state = {
-
-        history: [],
 
         answers: [],
 
@@ -536,8 +511,6 @@ export default async function handler(
 
     } = req.body || {};
 
-
-    // CHECK MESSAGE
 
     if (!message) {
 
@@ -550,29 +523,23 @@ export default async function handler(
     }
 
 
-    // ======================================
     // READ CSV
-    // ======================================
 
-    const csvText = fs.readFileSync(
+    const csvText =
+      fs.readFileSync(
 
-      CSV_PATH,
+        CSV_PATH,
 
-      "utf8"
+        "utf8"
 
-    );
-
-
-    const rows = parseCSV(
-
-      csvText
-
-    );
+      );
 
 
-    // ======================================
-    // SAVE USER ANSWERS
-    // ======================================
+    const rows =
+      parseCSV(csvText);
+
+
+    // SAVE ANSWER
 
     const answers = [
 
@@ -583,16 +550,16 @@ export default async function handler(
     ];
 
 
-    // ORIGINAL USER QUESTION
+    // ORIGINAL QUESTION
 
     const rootQuery =
 
-      state.rootQuery || message;
+      state.rootQuery ||
+
+      message;
 
 
-    // ======================================
-    // FIND MATCHING MEDICINES
-    // ======================================
+    // FIND MATCHES
 
     const candidates = rank(
 
@@ -602,18 +569,19 @@ export default async function handler(
 
       answers
 
-    ).slice(0, 10);
+    );
 
 
-    // ======================================
-    // NO MATCHES
-    // ======================================
+    // NO RESULTS
 
-    if (!candidates.length) {
+    if (
+      !candidates.length
+    ) {
 
       return res.status(200).json({
 
-        type: "results",
+        type:
+          "results",
 
         results: [],
 
@@ -624,7 +592,6 @@ export default async function handler(
           answers,
 
           turn:
-
             state.turn + 1
 
         }
@@ -634,9 +601,8 @@ export default async function handler(
     }
 
 
-    // ======================================
     // STOP AFTER 5 QUESTIONS
-    // ======================================
+    // OR 3 CANDIDATES
 
     if (
 
@@ -648,7 +614,8 @@ export default async function handler(
 
       return res.status(200).json({
 
-        type: "results",
+        type:
+          "results",
 
         results:
 
@@ -661,7 +628,6 @@ export default async function handler(
           answers,
 
           turn:
-
             state.turn + 1
 
         }
@@ -671,30 +637,28 @@ export default async function handler(
     }
 
 
-    // ======================================
-    // ASK AI NEXT QUESTION
-    // ======================================
+    // ASK AI
 
-    const ai = await askAI(
+    const ai =
 
-      message,
+      await askAI(
 
-      {
+        message,
 
-        ...state,
+        {
 
-        answers
+          ...state,
 
-      },
+          answers
 
-      candidates
+        },
 
-    );
+        candidates
+
+      );
 
 
-    // ======================================
-    // SAVE NEW STATE
-    // ======================================
+    // NEW STATE
 
     const newState = {
 
@@ -703,28 +667,27 @@ export default async function handler(
       answers,
 
       turn:
-
         state.turn + 1
 
     };
 
 
-    // ======================================
-    // AI WANTS TO SHOW RESULTS
-    // ======================================
+    // SHOW RESULTS
 
-    if (ai.action === "results") {
+    if (
+      ai.action === "results"
+    ) {
 
       return res.status(200).json({
 
-        type: "results",
+        type:
+          "results",
 
         results:
 
           candidates.slice(0, 5),
 
         state:
-
           newState
 
       });
@@ -732,16 +695,14 @@ export default async function handler(
     }
 
 
-    // ======================================
-    // RETURN AI QUESTION
-    // ======================================
+    // SHOW QUESTION
 
     return res.status(200).json({
 
-      type: "question",
+      type:
+        "question",
 
       question:
-
         ai.question,
 
 
@@ -761,7 +722,6 @@ export default async function handler(
 
 
       state:
-
         newState
 
     });
@@ -769,10 +729,6 @@ export default async function handler(
 
   }
 
-
-  // ========================================
-  // HANDLE ERRORS
-  // ========================================
 
   catch (error) {
 
