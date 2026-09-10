@@ -2,11 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
-const CSV_PATH = path.join(
-  process.cwd(),
-  "api",
-  "sbl_indications.csv"
-);
+
+const CSV_PATH = new URL("./sbl_indications.csv", import.meta.url);
 
 function parseCSV(text){
   const lines=text.trim().split(/\r?\n/); const headers=split(lines.shift());
