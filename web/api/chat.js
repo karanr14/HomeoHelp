@@ -11,7 +11,7 @@ const MODEL =
 
 
 // ==========================================
-// CSV FILE
+// CSV LOCATION
 // ==========================================
 
 const CSV_PATH = new URL(
@@ -22,7 +22,10 @@ const CSV_PATH = new URL(
 
 // ==========================================
 // CSV PARSER
-// Supports commas and multi-line fields
+// Supports:
+// - commas inside quotes
+// - multiple lines inside quotes
+// - double quotes
 // ==========================================
 
 function parseCSV(text) {
@@ -40,9 +43,14 @@ function parseCSV(text) {
     const nextChar = text[i + 1];
 
 
+    // QUOTES
+
     if (char === '"') {
 
-      if (inQuotes && nextChar === '"') {
+      if (
+        inQuotes &&
+        nextChar === '"'
+      ) {
 
         field += '"';
         i++;
@@ -56,35 +64,53 @@ function parseCSV(text) {
     }
 
 
-    else if (char === "," && !inQuotes) {
+    // COMMA = NEXT COLUMN
+
+    else if (
+      char === "," &&
+      !inQuotes
+    ) {
 
       row.push(field.trim());
+
       field = "";
 
     }
 
+
+    // NEW LINE = NEXT ROW
+    // Only when NOT inside quotes
 
     else if (
       (char === "\n" || char === "\r") &&
       !inQuotes
     ) {
 
+      // Windows line ending
+
       if (
         char === "\r" &&
         nextChar === "\n"
       ) {
+
         i++;
+
       }
 
 
       row.push(field.trim());
+
       field = "";
 
 
       if (
-        row.some(value => value !== "")
+        row.some(
+          value => value !== ""
+        )
       ) {
+
         rows.push(row);
+
       }
 
 
@@ -92,6 +118,8 @@ function parseCSV(text) {
 
     }
 
+
+    // NORMAL CHARACTER
 
     else {
 
@@ -102,37 +130,45 @@ function parseCSV(text) {
   }
 
 
-  // Add final field
+  // ADD FINAL FIELD
 
   row.push(field.trim());
 
 
-  // Add final row
+  // ADD FINAL ROW
 
   if (
-    row.some(value => value !== "")
+    row.some(
+      value => value !== ""
+    )
   ) {
+
     rows.push(row);
+
   }
 
 
-  // Get headers
+  // GET HEADERS
 
   const headers = rows.shift();
 
 
-  // Convert rows into objects
+  // CONVERT TO OBJECTS
 
   return rows.map((row) => {
 
     const obj = {};
 
-    headers.forEach((header, index) => {
 
-      obj[header.trim()] =
-        row[index] ?? "";
+    headers.forEach(
+      (header, index) => {
 
-    });
+        obj[header.trim()] =
+          row[index] ?? "";
+
+      }
+    );
+
 
     return obj;
 
@@ -165,7 +201,7 @@ function words(text) {
 
 
 // ==========================================
-// RANK MEDICINES
+// RANK DATABASE RECORDS
 // ==========================================
 
 function rank(
@@ -176,7 +212,8 @@ function rank(
 
   const terms = words(
 
-    query + " " +
+    query +
+    " " +
     answers.join(" ")
 
   );
@@ -205,7 +242,9 @@ function rank(
         if (
           searchableText.includes(term)
         ) {
+
           score++;
+
         }
 
       });
@@ -239,51 +278,7 @@ function rank(
 
 
 // ==========================================
-// EXTRACT JSON FROM AI RESPONSE
-// ==========================================
-
-function extractJSON(text) {
-
-  // Remove markdown if AI uses it
-
-  text = text
-    .replace(/```json/gi, "")
-    .replace(/```/g, "")
-    .trim();
-
-
-  // Find JSON object
-
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-
-
-  if (
-    start === -1 ||
-    end === -1
-  ) {
-
-    throw new Error(
-      "AI did not return a valid response"
-    );
-
-  }
-
-
-  const jsonText = text.slice(
-    start,
-    end + 1
-  );
-
-
-  return JSON.parse(jsonText);
-
-}
-
-
-// ==========================================
-// ASK AI
-// NO STRICT JSON MODE
+// ASK GROQ AI
 // ==========================================
 
 async function askAI(
@@ -293,19 +288,24 @@ async function askAI(
 ) {
 
 
-  // Send only 5 candidates
-  // Keep token usage low
+  // ========================================
+  // KEEP REQUEST SMALL
+  // Only send 4 candidates
+  // Only send first 200 characters
+  // ========================================
 
   const compactCandidates =
 
     candidates
 
-      .slice(0, 5)
+      .slice(0, 4)
 
       .map((item) => ({
 
-        medicine:
-          item.product_name,
+        medicine_name:
+
+          item.product_name || "",
+
 
         indications:
 
@@ -313,59 +313,50 @@ async function askAI(
 
             .replace(/\s+/g, " ")
 
-            .slice(0, 250)
+            .slice(0, 200)
 
       }));
 
 
-  const prompt = `
-You are a database narrowing assistant.
+  // ========================================
+  // SHORT PROMPT
+  // ========================================
+
+  const prompt = `You are a database narrowing assistant.
 
 You are NOT a doctor.
+
 Do not diagnose.
 Do not prescribe.
 Do not recommend treatment.
 
-Your task is ONLY to narrow database records.
+Your ONLY job is to narrow database records.
 
-USER MESSAGE:
+User message:
 ${message}
 
-PREVIOUS ANSWERS:
+Previous answers:
 ${(state.answers || [])
-  .slice(-4)
+  .slice(-3)
   .join(" | ") || "None"}
 
-CANDIDATES:
+Candidate records:
 ${JSON.stringify(compactCandidates)}
 
-Ask exactly ONE short question that helps separate the candidates.
+Ask exactly ONE short neutral question that best separates the candidate records.
 
-Only ask about characteristics found in the candidate indications.
+Only ask about information represented in the candidate records.
 
-Do not ask for information already given.
+Do not ask something already answered.
 
-Your entire response MUST be exactly one JSON object.
+If the records are sufficiently narrowed, choose "results".
 
-If you need another question:
+For "results", use an empty question and empty options.`;
 
-{
-  "action": "question",
-  "question": "short question",
-  "options": [
-    "Option 1",
-    "Option 2",
-    "Not sure"
-  ]
-}
 
-If no more question is needed:
-
-{
-  "action": "results"
-}
-`;
-
+  // ========================================
+  // CALL GROQ
+  // ========================================
 
   const res = await fetch(
 
@@ -381,6 +372,7 @@ If no more question is needed:
         "Content-Type":
           "application/json",
 
+
         "Authorization":
           "Bearer " +
           process.env.GROQ_API_KEY
@@ -393,27 +385,119 @@ If no more question is needed:
         model: MODEL,
 
 
-        temperature: 0.2,
+        // LOW REASONING
+
+        reasoning_effort: "low",
 
 
-        max_completion_tokens: 300,
+        // IMPORTANT:
+        // Prevent reasoning from taking
+        // over the response
+
+        include_reasoning: false,
+
+
+        temperature: 0.3,
+
+
+        // Enough room for
+        // one question
+
+        max_completion_tokens: 500,
+
+
+        // ==================================
+        // STRICT JSON SCHEMA
+        // ==================================
+
+        response_format: {
+
+          type: "json_schema",
+
+
+          json_schema: {
+
+            name:
+              "dataset_narrowing_response",
+
+
+            strict: true,
+
+
+            schema: {
+
+              type: "object",
+
+
+              properties: {
+
+                action: {
+
+                  type: "string",
+
+
+                  enum: [
+
+                    "question",
+
+                    "results"
+
+                  ]
+
+                },
+
+
+                question: {
+
+                  type: "string"
+
+                },
+
+
+                options: {
+
+                  type: "array",
+
+
+                  items: {
+
+                    type: "string"
+
+                  }
+
+                }
+
+              },
+
+
+              required: [
+
+                "action",
+
+                "question",
+
+                "options"
+
+              ],
+
+
+              additionalProperties:
+
+                false
+
+            }
+
+          }
+
+        },
 
 
         messages: [
 
           {
 
-            role: "system",
-
-            content:
-              "Return only a JSON object. No explanation."
-
-          },
-
-
-          {
-
             role: "user",
+
 
             content: prompt
 
@@ -428,12 +512,20 @@ If no more question is needed:
   );
 
 
-  // Check AI provider error
+  // ========================================
+  // CHECK GROQ ERROR
+  // ========================================
 
   if (!res.ok) {
 
     const errorText =
       await res.text();
+
+
+    console.error(
+      "GROQ ERROR:",
+      errorText
+    );
 
 
     throw new Error(
@@ -446,26 +538,68 @@ If no more question is needed:
   }
 
 
+  // ========================================
+  // GET RESPONSE
+  // ========================================
+
   const data =
     await res.json();
 
 
-  const aiText =
-    data.choices?.[0]
+  console.log(
+    "GROQ RESPONSE:",
+    JSON.stringify(data)
+  );
+
+
+  const content =
+
+    data
+      ?.choices?.[0]
       ?.message
       ?.content;
 
 
-  if (!aiText) {
+  // ========================================
+  // CHECK CONTENT
+  // ========================================
+
+  if (!content) {
 
     throw new Error(
+
       "AI returned an empty response"
+
     );
 
   }
 
 
-  return extractJSON(aiText);
+  // ========================================
+  // PARSE JSON
+  // ========================================
+
+  try {
+
+    return JSON.parse(content);
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "JSON PARSE ERROR:",
+      content
+    );
+
+
+    throw new Error(
+
+      "AI returned invalid JSON"
+
+    );
+
+  }
 
 }
 
@@ -480,7 +614,7 @@ export default async function handler(
 ) {
 
 
-  // Only allow POST
+  // ONLY POST ALLOWED
 
   if (
     req.method !== "POST"
@@ -498,7 +632,9 @@ export default async function handler(
   try {
 
 
-    // Check API key
+    // ======================================
+    // CHECK API KEY
+    // ======================================
 
     if (
       !process.env.GROQ_API_KEY
@@ -513,11 +649,14 @@ export default async function handler(
     }
 
 
-    // Get user data
+    // ======================================
+    // GET USER DATA
+    // ======================================
 
     const {
 
       message,
+
 
       state = {
 
@@ -530,20 +669,25 @@ export default async function handler(
     } = req.body || {};
 
 
-    // Check message
+    // CHECK MESSAGE
 
     if (!message) {
 
       throw new Error(
+
         "Missing message"
+
       );
 
     }
 
 
-    // Read CSV
+    // ======================================
+    // READ CSV
+    // ======================================
 
     const csvText =
+
       fs.readFileSync(
 
         CSV_PATH,
@@ -554,10 +698,17 @@ export default async function handler(
 
 
     const rows =
-      parseCSV(csvText);
+
+      parseCSV(
+
+        csvText
+
+      );
 
 
-    // Save answers
+    // ======================================
+    // SAVE ANSWERS
+    // ======================================
 
     const answers = [
 
@@ -568,7 +719,9 @@ export default async function handler(
     ];
 
 
-    // Original user message
+    // ======================================
+    // ORIGINAL USER QUERY
+    // ======================================
 
     const rootQuery =
 
@@ -577,20 +730,26 @@ export default async function handler(
       message;
 
 
-    // Find candidates
+    // ======================================
+    // FIND CANDIDATES
+    // ======================================
 
-    const candidates = rank(
+    const candidates =
 
-      rows,
+      rank(
 
-      rootQuery,
+        rows,
 
-      answers
+        rootQuery,
 
-    );
+        answers
+
+      );
 
 
-    // No matches
+    // ======================================
+    // NO RESULTS
+    // ======================================
 
     if (
       candidates.length === 0
@@ -600,7 +759,9 @@ export default async function handler(
 
         type: "results",
 
+
         results: [],
+
 
         state: {
 
@@ -609,6 +770,7 @@ export default async function handler(
           answers,
 
           turn:
+
             state.turn + 1
 
         }
@@ -618,8 +780,10 @@ export default async function handler(
     }
 
 
-    // Stop after 5 questions
-    // or when only 3 candidates remain
+    // ======================================
+    // STOP AFTER 5 QUESTIONS
+    // OR WHEN ONLY 3 REMAIN
+    // ======================================
 
     if (
 
@@ -633,9 +797,11 @@ export default async function handler(
 
         type: "results",
 
+
         results:
 
           candidates.slice(0, 5),
+
 
         state: {
 
@@ -644,6 +810,7 @@ export default async function handler(
           answers,
 
           turn:
+
             state.turn + 1
 
         }
@@ -653,9 +820,12 @@ export default async function handler(
     }
 
 
-    // Ask AI
+    // ======================================
+    // ASK AI
+    // ======================================
 
     const ai =
+
       await askAI(
 
         message,
@@ -673,7 +843,9 @@ export default async function handler(
       );
 
 
-    // Save state
+    // ======================================
+    // SAVE NEW STATE
+    // ======================================
 
     const newState = {
 
@@ -682,12 +854,15 @@ export default async function handler(
       answers,
 
       turn:
+
         state.turn + 1
 
     };
 
 
-    // AI wants results
+    // ======================================
+    // SHOW RESULTS
+    // ======================================
 
     if (
       ai.action === "results"
@@ -697,11 +872,14 @@ export default async function handler(
 
         type: "results",
 
+
         results:
 
           candidates.slice(0, 5),
 
+
         state:
+
           newState
 
       });
@@ -709,34 +887,41 @@ export default async function handler(
     }
 
 
-    // Return AI question
+    // ======================================
+    // SHOW QUESTION
+    // ======================================
 
     return res.status(200).json({
 
       type: "question",
 
+
       question:
 
         ai.question ||
+
         "Could you provide a little more detail?",
 
 
       options:
 
-        ai.options ||
+        ai.options?.length
 
-        [
+          ? ai.options
 
-          "Yes",
+          : [
 
-          "No",
+              "Yes",
 
-          "Not sure"
+              "No",
 
-        ],
+              "Not sure"
+
+            ],
 
 
       state:
+
         newState
 
     });
@@ -745,12 +930,20 @@ export default async function handler(
   }
 
 
-  // Handle errors
+  // ========================================
+  // ERROR HANDLING
+  // ========================================
 
   catch (error) {
 
 
-    console.error(error);
+    console.error(
+
+      "SERVER ERROR:",
+
+      error
+
+    );
 
 
     return res.status(500).json({
