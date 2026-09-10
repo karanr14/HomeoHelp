@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/chat.js": {
-      "includeFiles": "data/**"
+      "includeFiles": "api/sbl_indications.csv"
     }
   }
 }
