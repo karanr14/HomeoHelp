@@ -2,17 +2,13 @@ import fs from "node:fs";
 
 
 // ==========================================
-// AI MODEL
+// CONFIGURATION
 // ==========================================
 
 const MODEL =
   process.env.GROQ_MODEL ||
   "openai/gpt-oss-20b";
 
-
-// ==========================================
-// CSV LOCATION
-// ==========================================
 
 const CSV_PATH = new URL(
   "./sbl_indications.csv",
@@ -22,7 +18,7 @@ const CSV_PATH = new URL(
 
 // ==========================================
 // CSV PARSER
-// Supports:
+// Handles:
 // - commas inside quotes
 // - multiple lines inside quotes
 // - double quotes
@@ -40,17 +36,12 @@ function parseCSV(text) {
   for (let i = 0; i < text.length; i++) {
 
     const char = text[i];
-    const nextChar = text[i + 1];
+    const next = text[i + 1];
 
-
-    // QUOTES
 
     if (char === '"') {
 
-      if (
-        inQuotes &&
-        nextChar === '"'
-      ) {
+      if (inQuotes && next === '"') {
 
         field += '"';
         i++;
@@ -64,8 +55,6 @@ function parseCSV(text) {
     }
 
 
-    // COMMA = NEXT COLUMN
-
     else if (
       char === "," &&
       !inQuotes
@@ -78,19 +67,14 @@ function parseCSV(text) {
     }
 
 
-    // NEW LINE = NEXT ROW
-    // Only when NOT inside quotes
-
     else if (
       (char === "\n" || char === "\r") &&
       !inQuotes
     ) {
 
-      // Windows line ending
-
       if (
         char === "\r" &&
-        nextChar === "\n"
+        next === "\n"
       ) {
 
         i++;
@@ -119,8 +103,6 @@ function parseCSV(text) {
     }
 
 
-    // NORMAL CHARACTER
-
     else {
 
       field += char;
@@ -130,12 +112,8 @@ function parseCSV(text) {
   }
 
 
-  // ADD FINAL FIELD
-
   row.push(field.trim());
 
-
-  // ADD FINAL ROW
 
   if (
     row.some(
@@ -148,14 +126,10 @@ function parseCSV(text) {
   }
 
 
-  // GET HEADERS
-
   const headers = rows.shift();
 
 
-  // CONVERT TO OBJECTS
-
-  return rows.map((row) => {
+  return rows.map(row => {
 
     const obj = {};
 
@@ -164,7 +138,7 @@ function parseCSV(text) {
       (header, index) => {
 
         obj[header.trim()] =
-          row[index] ?? "";
+          row[index] || "";
 
       }
     );
@@ -178,83 +152,495 @@ function parseCSV(text) {
 
 
 // ==========================================
-// GET SEARCH WORDS
+// NORMALIZE TEXT
 // ==========================================
 
-function words(text) {
+function normalize(text) {
 
-  return [
+  return (text || "")
 
-    ...new Set(
+    .toLowerCase()
 
-      (text || "")
-        .toLowerCase()
-        .match(/[a-z]{3,}/g)
+    .replace(/[^a-z0-9\s]/g, " ")
 
-      || []
+    .replace(/\s+/g, " ")
 
-    )
-
-  ];
+    .trim();
 
 }
 
 
 // ==========================================
-// RANK DATABASE RECORDS
+// STOP WORDS
+//
+// These words should NOT influence
+// medicine searching
 // ==========================================
 
-function rank(
-  rows,
-  query,
-  answers = []
+const STOP_WORDS = new Set([
+
+  "i",
+  "me",
+  "my",
+  "have",
+  "has",
+  "had",
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "but",
+  "with",
+  "for",
+  "from",
+  "this",
+  "that",
+  "there",
+  "here",
+  "very",
+  "really",
+  "please",
+  "help",
+  "need",
+  "want",
+  "feel",
+  "feeling",
+  "been",
+  "just",
+  "also",
+  "some",
+  "what",
+  "when",
+  "where",
+  "which"
+
+]);
+
+
+// ==========================================
+// GET IMPORTANT WORDS
+// ==========================================
+
+function getKeywords(text) {
+
+  return normalize(text)
+
+    .split(" ")
+
+    .filter(word =>
+
+      word.length >= 3 &&
+
+      !STOP_WORDS.has(word)
+
+    );
+
+}
+
+
+// ==========================================
+// SYMPTOM GROUPS
+//
+// These help connect similar terms.
+//
+// Example:
+//
+// toothache
+// tooth pain
+// dental pain
+// teeth
+//
+// ==========================================
+
+const SYMPTOM_GROUPS = [
+
+  {
+
+    name: "tooth_dental",
+
+    terms: [
+
+      "toothache",
+      "tooth ache",
+      "tooth pain",
+      "dental pain",
+      "tooth",
+      "teeth",
+      "gum pain",
+      "gums",
+      "dental"
+
+    ]
+
+  },
+
+
+  {
+
+    name: "headache",
+
+    terms: [
+
+      "headache",
+      "head pain",
+      "pain in head",
+      "migraine",
+      "head ache"
+
+    ]
+
+  },
+
+
+  {
+
+    name: "ear",
+
+    terms: [
+
+      "earache",
+      "ear pain",
+      "ears",
+      "ear"
+
+    ]
+
+  },
+
+
+  {
+
+    name: "stomach",
+
+    terms: [
+
+      "stomach pain",
+      "stomach ache",
+      "abdominal pain",
+      "abdomen pain",
+      "belly pain",
+      "gastric"
+
+    ]
+
+  },
+
+
+  {
+
+    name: "cold",
+
+    terms: [
+
+      "common cold",
+      "cold",
+      "runny nose",
+      "blocked nose",
+      "sneezing",
+      "nasal"
+
+    ]
+
+  },
+
+
+  {
+
+    name: "cough",
+
+    terms: [
+
+      "cough",
+      "dry cough",
+      "wet cough",
+      "productive cough"
+
+    ]
+
+  },
+
+
+  {
+
+    name: "fever",
+
+    terms: [
+
+      "fever",
+      "high temperature",
+      "temperature",
+      "febrile"
+
+    ]
+
+  },
+
+
+  {
+
+    name: "throat",
+
+    terms: [
+
+      "sore throat",
+      "throat pain",
+      "throat",
+      "tonsils",
+      "tonsillitis"
+
+    ]
+
+  },
+
+
+  {
+
+    name: "joint",
+
+    terms: [
+
+      "joint pain",
+      "joint",
+      "arthritis",
+      "knee pain",
+      "muscle pain"
+
+    ]
+
+  },
+
+
+  {
+
+    name: "skin",
+
+    terms: [
+
+      "skin",
+      "rash",
+      "itching",
+      "itchy",
+      "eruption",
+      "acne"
+
+    ]
+
+  }
+
+];
+
+
+// ==========================================
+// FIND SYMPTOM GROUPS
+// ==========================================
+
+function detectSymptomGroups(text) {
+
+  const normalized = normalize(text);
+
+  const found = [];
+
+
+  for (const group of SYMPTOM_GROUPS) {
+
+    for (const term of group.terms) {
+
+      if (
+        normalized.includes(
+          normalize(term)
+        )
+      ) {
+
+        found.push(group);
+
+        break;
+
+      }
+
+    }
+
+  }
+
+
+  return found;
+
+}
+
+
+// ==========================================
+// SCORE ONE MEDICINE
+// ==========================================
+
+function scoreMedicine(
+  medicine,
+  rootQuery,
+  answers
 ) {
 
-  const terms = words(
+  const text = normalize(
 
-    query +
+    medicine.product_name +
+
     " " +
-    answers.join(" ")
+
+    medicine.indications
 
   );
 
 
-  return rows
-
-    .map((row) => {
-
-      const searchableText = (
-
-        (row.product_name || "") +
-
-        " " +
-
-        (row.indications || "")
-
-      ).toLowerCase();
+  const root = normalize(
+    rootQuery
+  );
 
 
-      let score = 0;
+  let score = 0;
 
 
-      terms.forEach((term) => {
+  // ========================================
+  // 1. DETECT MAIN SYMPTOM GROUP
+  // ========================================
 
-        if (
-          searchableText.includes(term)
-        ) {
+  const groups =
 
-          score++;
+    detectSymptomGroups(root);
 
-        }
 
-      });
+  for (const group of groups) {
 
+    for (const term of group.terms) {
+
+      const normalizedTerm =
+
+        normalize(term);
+
+
+      if (
+        text.includes(
+          normalizedTerm
+        )
+      ) {
+
+        // STRONG SCORE
+
+        score += 20;
+
+      }
+
+    }
+
+  }
+
+
+  // ========================================
+  // 2. EXACT ROOT QUERY
+  // ========================================
+
+  if (
+    root.length >= 4 &&
+    text.includes(root)
+  ) {
+
+    score += 50;
+
+  }
+
+
+  // ========================================
+  // 3. IMPORTANT KEYWORDS
+  // ========================================
+
+  const keywords =
+
+    getKeywords(rootQuery);
+
+
+  for (const keyword of keywords) {
+
+    if (
+      text.includes(keyword)
+    ) {
+
+      score += 5;
+
+    }
+
+  }
+
+
+  // ========================================
+  // 4. PREVIOUS ANSWERS
+  //
+  // Lower score because answers should
+  // refine, not completely replace
+  // the main symptom
+  // ========================================
+
+  for (const answer of answers) {
+
+    const answerKeywords =
+
+      getKeywords(answer);
+
+
+    for (
+      const keyword of answerKeywords
+    ) {
+
+      if (
+        text.includes(keyword)
+      ) {
+
+        score += 2;
+
+      }
+
+    }
+
+  }
+
+
+  return score;
+
+}
+
+
+// ==========================================
+// SMART RANKING
+// ==========================================
+
+function rankMedicines(
+  rows,
+  rootQuery,
+  answers
+) {
+
+  const groups =
+
+    detectSymptomGroups(
+      rootQuery
+    );
+
+
+  const scored = rows
+
+    .map(medicine => {
 
       return {
 
-        ...row,
+        ...medicine,
 
-        _score: score
+        _score:
+
+          scoreMedicine(
+
+            medicine,
+
+            rootQuery,
+
+            answers
+
+          )
 
       };
 
@@ -262,103 +648,236 @@ function rank(
 
 
     .filter(
-      item => item._score > 0
-    )
 
+      medicine =>
+        medicine._score > 0
+
+    );
+
+
+  // ========================================
+  // IMPORTANT DOMAIN FILTER
+  //
+  // If user says TOOTHACHE,
+  // strongly prefer records that
+  // actually contain dental terms.
+  // ========================================
+
+  if (
+    groups.length > 0
+  ) {
+
+    const domainMatches =
+
+      scored.filter(medicine => {
+
+        const text = normalize(
+
+          medicine.indications
+
+        );
+
+
+        return groups.some(group =>
+
+          group.terms.some(term =>
+
+            text.includes(
+              normalize(term)
+            )
+
+          )
+
+        );
+
+      });
+
+
+    // USE DOMAIN MATCHES
+    // ONLY IF WE FOUND SOME
+
+    if (
+      domainMatches.length > 0
+    ) {
+
+      return domainMatches
+
+        .sort(
+
+          (a, b) =>
+            b._score -
+            a._score
+
+        )
+
+        .slice(0, 12);
+
+    }
+
+  }
+
+
+  return scored
 
     .sort(
+
       (a, b) =>
-        b._score - a._score
+        b._score -
+        a._score
+
     )
 
-
-    .slice(0, 10);
+    .slice(0, 12);
 
 }
 
 
 // ==========================================
-// ASK GROQ AI
+// CREATE SMALL CANDIDATE DATA
+//
+// We do NOT send the whole CSV
+// to the AI.
+// ==========================================
+
+function makeCandidates(
+  candidates
+) {
+
+  return candidates
+
+    .slice(0, 6)
+
+    .map(item => ({
+
+      medicine:
+
+        item.product_name,
+
+
+      indications:
+
+        (item.indications || "")
+
+          .replace(/\s+/g, " ")
+
+          .slice(0, 500)
+
+    }));
+
+}
+
+
+// ==========================================
+// ASK AI
 // ==========================================
 
 async function askAI(
+  rootQuery,
   message,
-  state,
+  answers,
   candidates
 ) {
 
 
-  // ========================================
-  // KEEP REQUEST SMALL
-  // Only send 4 candidates
-  // Only send first 200 characters
-  // ========================================
-
   const compactCandidates =
 
-    candidates
-
-      .slice(0, 4)
-
-      .map((item) => ({
-
-        medicine_name:
-
-          item.product_name || "",
+    makeCandidates(
+      candidates
+    );
 
 
-        indications:
+  const prompt = `You are an intelligent DATABASE NARROWING assistant.
 
-          (item.indications || "")
-
-            .replace(/\s+/g, " ")
-
-            .slice(0, 200)
-
-      }));
-
-
-  // ========================================
-  // SHORT PROMPT
-  // ========================================
-
-  const prompt = `You are a database narrowing assistant.
+IMPORTANT:
 
 You are NOT a doctor.
 
-Do not diagnose.
-Do not prescribe.
-Do not recommend treatment.
+Do NOT diagnose.
 
-Your ONLY job is to narrow database records.
+Do NOT prescribe.
 
-User message:
+Do NOT recommend which medicine to take.
+
+Your ONLY task is to help narrow records in a medicine indication database.
+
+MAIN USER SYMPTOM:
+
+${rootQuery}
+
+LATEST USER ANSWER:
+
 ${message}
 
-Previous answers:
-${(state.answers || [])
-  .slice(-3)
-  .join(" | ") || "None"}
+ALL PREVIOUS ANSWERS:
 
-Candidate records:
+${answers.slice(-5).join(" | ")}
+
+CANDIDATE DATABASE RECORDS:
+
 ${JSON.stringify(compactCandidates)}
 
-Ask exactly ONE short neutral question that best separates the candidate records.
+YOUR JOB:
 
-Only ask about information represented in the candidate records.
+First understand the MAIN USER SYMPTOM.
 
-Do not ask something already answered.
+The main symptom is always the most important context.
 
-If the records are sufficiently narrowed, choose "results".
+Ask ONE useful follow-up question that separates the candidate records.
 
-For "results", use an empty question and empty options.`;
+The question MUST:
+
+1. Be related to the MAIN USER SYMPTOM.
+
+2. Be based on real differences between the candidate indications.
+
+3. Help eliminate multiple candidates.
+
+4. NOT ask about an unrelated body area.
+
+5. NOT ask whether a medicine treats something.
+
+BAD EXAMPLE:
+
+"Does the medicine treat spasms?"
+
+BAD EXAMPLE:
+
+For toothache:
+"Do you have pain around your temples?"
+
+GOOD EXAMPLE:
+
+For toothache:
+Ask about a characteristic that actually separates the tooth-related candidate records.
+
+The USER should describe symptoms.
+
+Never ask the user about medicines.
+
+Return ONLY valid JSON.
+
+Use exactly this format:
+
+{
+  "action": "question",
+  "question": "your question",
+  "options": [
+    "Option 1",
+    "Option 2",
+    "Not sure"
+  ]
+}
+
+OR:
+
+{
+  "action": "results",
+  "question": "",
+  "options": []
+}`;
 
 
-  // ========================================
-  // CALL GROQ
-  // ========================================
-
-  const res = await fetch(
+  const response = await fetch(
 
     "https://api.groq.com/openai/v1/chat/completions",
 
@@ -370,11 +889,14 @@ For "results", use an empty question and empty options.`;
       headers: {
 
         "Content-Type":
+
           "application/json",
 
 
         "Authorization":
+
           "Bearer " +
+
           process.env.GROQ_API_KEY
 
       },
@@ -385,121 +907,52 @@ For "results", use an empty question and empty options.`;
         model: MODEL,
 
 
-        // LOW REASONING
+        reasoning_effort:
 
-        reasoning_effort: "low",
-
-
-        // IMPORTANT:
-        // Prevent reasoning from taking
-        // over the response
-
-        include_reasoning: false,
+          "low",
 
 
-        temperature: 0.3,
+        include_reasoning:
+
+          false,
 
 
-        // Enough room for
-        // one question
+        temperature:
 
-        max_completion_tokens: 500,
-
-
-        // ==================================
-        // STRICT JSON SCHEMA
-        // ==================================
-
-        response_format: {
-
-          type: "json_schema",
+          0.3,
 
 
-          json_schema: {
+        max_completion_tokens:
 
-            name:
-              "dataset_narrowing_response",
-
-
-            strict: true,
-
-
-            schema: {
-
-              type: "object",
-
-
-              properties: {
-
-                action: {
-
-                  type: "string",
-
-
-                  enum: [
-
-                    "question",
-
-                    "results"
-
-                  ]
-
-                },
-
-
-                question: {
-
-                  type: "string"
-
-                },
-
-
-                options: {
-
-                  type: "array",
-
-
-                  items: {
-
-                    type: "string"
-
-                  }
-
-                }
-
-              },
-
-
-              required: [
-
-                "action",
-
-                "question",
-
-                "options"
-
-              ],
-
-
-              additionalProperties:
-
-                false
-
-            }
-
-          }
-
-        },
+          500,
 
 
         messages: [
 
           {
 
-            role: "user",
+            role:
+
+              "system",
 
 
-            content: prompt
+            content:
+
+              "Return valid JSON only. Do not return explanations."
+
+          },
+
+
+          {
+
+            role:
+
+              "user",
+
+
+            content:
+
+              prompt
 
           }
 
@@ -513,24 +966,20 @@ For "results", use an empty question and empty options.`;
 
 
   // ========================================
-  // CHECK GROQ ERROR
+  // CHECK ERROR
   // ========================================
 
-  if (!res.ok) {
+  if (!response.ok) {
 
     const errorText =
-      await res.text();
 
-
-    console.error(
-      "GROQ ERROR:",
-      errorText
-    );
+      await response.text();
 
 
     throw new Error(
 
       "AI provider error: " +
+
       errorText
 
     );
@@ -543,16 +992,11 @@ For "results", use an empty question and empty options.`;
   // ========================================
 
   const data =
-    await res.json();
+
+    await response.json();
 
 
-  console.log(
-    "GROQ RESPONSE:",
-    JSON.stringify(data)
-  );
-
-
-  const content =
+  let content =
 
     data
       ?.choices?.[0]
@@ -561,10 +1005,19 @@ For "results", use an empty question and empty options.`;
 
 
   // ========================================
-  // CHECK CONTENT
+  // FALLBACK IF EMPTY
   // ========================================
 
   if (!content) {
+
+    console.log(
+
+      "FULL AI RESPONSE:",
+
+      JSON.stringify(data)
+
+    );
+
 
     throw new Error(
 
@@ -576,22 +1029,36 @@ For "results", use an empty question and empty options.`;
 
 
   // ========================================
-  // PARSE JSON
+  // CLEAN MARKDOWN
   // ========================================
 
-  try {
+  content = content
 
-    return JSON.parse(content);
+    .replace(/```json/gi, "")
 
-  }
+    .replace(/```/g, "")
 
-  catch (error) {
+    .trim();
 
-    console.error(
-      "JSON PARSE ERROR:",
-      content
-    );
 
+  // ========================================
+  // EXTRACT JSON
+  // ========================================
+
+  const start =
+
+    content.indexOf("{");
+
+
+  const end =
+
+    content.lastIndexOf("}");
+
+
+  if (
+    start === -1 ||
+    end === -1
+  ) {
 
     throw new Error(
 
@@ -601,11 +1068,27 @@ For "results", use an empty question and empty options.`;
 
   }
 
+
+  const jsonText =
+
+    content.slice(
+
+      start,
+
+      end + 1
+
+    );
+
+
+  return JSON.parse(
+    jsonText
+  );
+
 }
 
 
 // ==========================================
-// MAIN API
+// MAIN API HANDLER
 // ==========================================
 
 export default async function handler(
@@ -614,15 +1097,15 @@ export default async function handler(
 ) {
 
 
-  // ONLY POST ALLOWED
-
   if (
     req.method !== "POST"
   ) {
 
     return res.status(405).json({
 
-      error: "POST only"
+      error:
+
+        "POST only"
 
     });
 
@@ -669,8 +1152,6 @@ export default async function handler(
     } = req.body || {};
 
 
-    // CHECK MESSAGE
-
     if (!message) {
 
       throw new Error(
@@ -700,10 +1181,19 @@ export default async function handler(
     const rows =
 
       parseCSV(
-
         csvText
-
       );
+
+
+    // ======================================
+    // MAIN SYMPTOM
+    // ======================================
+
+    const rootQuery =
+
+      state.rootQuery ||
+
+      message;
 
 
     // ======================================
@@ -720,23 +1210,12 @@ export default async function handler(
 
 
     // ======================================
-    // ORIGINAL USER QUERY
-    // ======================================
-
-    const rootQuery =
-
-      state.rootQuery ||
-
-      message;
-
-
-    // ======================================
-    // FIND CANDIDATES
+    // SMART SEARCH
     // ======================================
 
     const candidates =
 
-      rank(
+      rankMedicines(
 
         rows,
 
@@ -757,50 +1236,12 @@ export default async function handler(
 
       return res.status(200).json({
 
-        type: "results",
+        type:
+
+          "results",
 
 
         results: [],
-
-
-        state: {
-
-          rootQuery,
-
-          answers,
-
-          turn:
-
-            state.turn + 1
-
-        }
-
-      });
-
-    }
-
-
-    // ======================================
-    // STOP AFTER 5 QUESTIONS
-    // OR WHEN ONLY 3 REMAIN
-    // ======================================
-
-    if (
-
-      state.turn >= 5 ||
-
-      candidates.length <= 3
-
-    ) {
-
-      return res.status(200).json({
-
-        type: "results",
-
-
-        results:
-
-          candidates.slice(0, 5),
 
 
         state: {
@@ -828,15 +1269,11 @@ export default async function handler(
 
       await askAI(
 
+        rootQuery,
+
         message,
 
-        {
-
-          ...state,
-
-          answers
-
-        },
+        answers,
 
         candidates
 
@@ -844,7 +1281,7 @@ export default async function handler(
 
 
     // ======================================
-    // SAVE NEW STATE
+    // NEW STATE
     // ======================================
 
     const newState = {
@@ -861,7 +1298,7 @@ export default async function handler(
 
 
     // ======================================
-    // SHOW RESULTS
+    // RESULTS
     // ======================================
 
     if (
@@ -870,7 +1307,9 @@ export default async function handler(
 
       return res.status(200).json({
 
-        type: "results",
+        type:
+
+          "results",
 
 
         results:
@@ -888,24 +1327,28 @@ export default async function handler(
 
 
     // ======================================
-    // SHOW QUESTION
+    // QUESTION
     // ======================================
 
     return res.status(200).json({
 
-      type: "question",
+      type:
+
+        "question",
 
 
       question:
 
         ai.question ||
 
-        "Could you provide a little more detail?",
+        "Could you describe the symptom in a little more detail?",
 
 
       options:
 
-        ai.options?.length
+        Array.isArray(
+          ai.options
+        )
 
           ? ai.options
 
@@ -931,7 +1374,7 @@ export default async function handler(
 
 
   // ========================================
-  // ERROR HANDLING
+  // ERROR
   // ========================================
 
   catch (error) {
