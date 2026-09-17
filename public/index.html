@@ -999,9 +999,27 @@
       if (els.profileStatus) els.profileStatus.textContent = currentUser ? "Signed in" : "Not signed in";
       if (els.profileAccessText) els.profileAccessText.textContent = hasHomeoHelpAccess() ? "Authorized HomeoHelp account" : "Access requires an authorized account";
     }
-    function openProfilePage() {
-      if (!currentUser) return openAuth("login");
-      
+    async function openProfilePage() {
+      // Refresh the session before deciding whether the user is signed in.
+      // This prevents a race where Supabase is still restoring the session
+      // and currentUser is temporarily null even though the user is signed in.
+      if (!currentUser && authClient) {
+        try {
+          const { data, error } = await authClient.auth.getSession();
+          if (!error && data.session?.user) {
+            setCurrentUser(data.session.user);
+          }
+        } catch (error) {
+          console.warn("Unable to refresh HomeoHelp session:", error.message);
+        }
+      }
+
+      if (!currentUser) {
+        openAuth("login");
+        return;
+      }
+
+      updateAccountUI();
       els.app.classList.add("profile-transitioning");
       window.setTimeout(() => {
         els.app.hidden = true;
