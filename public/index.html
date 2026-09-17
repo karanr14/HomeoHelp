@@ -453,6 +453,24 @@
     .account-copy strong{font-size:13px}.account-copy span{font-size:11px;color:#81948d;margin-top:2px}
     .top-account{width:auto;min-width:42px;justify-content:center}
     .top-account .account-copy{display:none}
+
+    /* ── HomeoHelp custom dialogs ── */
+    .site-dialog-backdrop{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.48);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:grid;place-items:center;padding:18px;opacity:0;transition:opacity .28s ease;pointer-events:none}
+    .site-dialog-backdrop[hidden]{display:none}
+    .site-dialog-backdrop.open{opacity:1;pointer-events:auto}
+    .site-dialog-card{position:relative;width:min(430px,100%);padding:24px;border-radius:22px;overflow:hidden;isolation:isolate;opacity:0;transform:scale(.94) translateY(10px);filter:blur(5px);transition:transform .34s cubic-bezier(.22,1,.36,1),filter .28s ease,opacity .25s ease;border:1px solid var(--stroke);background:radial-gradient(120% 140% at 0% 0%,rgba(255,255,255,.13),transparent 42%),radial-gradient(90% 130% at 100% 100%,rgba(45,212,167,.09),transparent 54%),linear-gradient(135deg,rgba(255,255,255,.10),rgba(255,255,255,.035));backdrop-filter:blur(22px) saturate(135%);-webkit-backdrop-filter:blur(22px) saturate(135%);box-shadow:inset 2px 2px 2px 0 rgba(255,255,255,.24),inset -2px -2px 2px 0 rgba(255,255,255,.08),0 30px 90px rgba(0,0,0,.48)}
+    .site-dialog-backdrop.open .site-dialog-card{opacity:1;transform:scale(1) translateY(0);filter:blur(0)}
+    .site-dialog-card::before{content:"";position:absolute;inset:-35%;background:radial-gradient(circle at 18% 12%,rgba(45,212,167,.10),transparent 28%);pointer-events:none;z-index:0}
+    .site-dialog-card>*{position:relative;z-index:1}
+    .site-dialog-icon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;margin-bottom:14px;border:1px solid rgba(45,212,167,.24);background:rgba(45,212,167,.10);color:var(--accent);font-size:19px}
+    .site-dialog-card.error .site-dialog-icon{border-color:rgba(255,143,145,.28);background:rgba(255,143,145,.10);color:#ffb9ba}
+    .site-dialog-title{margin:0;font-size:22px;letter-spacing:-.03em;color:var(--text)}
+    .site-dialog-message{margin:8px 0 20px;color:var(--muted);font-size:14px;line-height:1.6;white-space:pre-wrap}
+    .site-dialog-actions{display:flex;justify-content:flex-end;gap:9px}
+    .site-dialog-btn{border:1px solid rgba(45,212,167,.30);border-radius:12px;padding:10px 17px;color:#06251d;background:var(--accent);font-weight:700;cursor:pointer;transition:.18s ease;box-shadow:0 1px 0 rgba(255,255,255,.25) inset}
+    .site-dialog-btn:hover{filter:brightness(1.05);transform:translateY(-1px)}
+    .site-dialog-btn:focus-visible{outline:2px solid rgba(114,246,205,.65);outline-offset:3px}
+
     .auth-backdrop{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:grid;place-items:center;padding:18px;opacity:0;transition:opacity .4s var(--transition);pointer-events:none}
     .auth-backdrop[hidden]{display:none}
     .auth-backdrop.open{opacity:1;pointer-events:auto}
@@ -692,6 +710,19 @@
     </section>
   </div>
 
+
+  <!-- ══ CUSTOM SITE DIALOG ══ -->
+  <div class="site-dialog-backdrop" id="siteDialogBackdrop" hidden>
+    <section class="site-dialog-card" id="siteDialogCard" role="dialog" aria-modal="true" aria-labelledby="siteDialogTitle" aria-describedby="siteDialogMessage">
+      <div class="site-dialog-icon" id="siteDialogIcon" aria-hidden="true">✓</div>
+      <h2 class="site-dialog-title" id="siteDialogTitle">HomeoHelp</h2>
+      <p class="site-dialog-message" id="siteDialogMessage"></p>
+      <div class="site-dialog-actions">
+        <button class="site-dialog-btn" id="siteDialogOk" type="button">OK</button>
+      </div>
+    </section>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const STORAGE = { sidebar:"homeohelp_sidebar", chats:"homeohelp_chats", legacyHistory:"homeohelp_history" };
@@ -702,7 +733,7 @@
     const SUBSCRIPTION_URL = ""; // Add your real checkout URL here when ready.
     // Password-reset emails must always return users to the live HomeoHelp site,
     // never to localhost or another development machine.
-    const APP_URL = "https://homeohelp.vercel.app";
+    const APP_URL = "https://homeo-help.vercel.app";
     let authClient = null;
     let currentUser = null;
     let authConfigured = false;
@@ -744,7 +775,7 @@
         els.subscriptionBuy.style.display = "block";
         els.subscriptionBuy.onclick = event => {
           event.preventDefault();
-          alert("Add your subscription checkout URL to SUBSCRIPTION_URL in public/index.html.");
+          showSiteDialog("Add your subscription checkout URL to SUBSCRIPTION_URL in public/index.html.", { title: "Subscription setup", type: "error" });
         };
       }
     }
@@ -867,6 +898,12 @@
       passwordSubmit: document.getElementById("passwordSubmit"),
       passwordMessage: document.getElementById("passwordMessage"),
       changePasswordBtn: document.getElementById("changePasswordBtn"),
+      siteDialogBackdrop: document.getElementById("siteDialogBackdrop"),
+      siteDialogCard: document.getElementById("siteDialogCard"),
+      siteDialogIcon: document.getElementById("siteDialogIcon"),
+      siteDialogTitle: document.getElementById("siteDialogTitle"),
+      siteDialogMessage: document.getElementById("siteDialogMessage"),
+      siteDialogOk: document.getElementById("siteDialogOk"),
       accountPanel: document.getElementById("accountPanel"),
       panelAccountName: document.getElementById("panelAccountName"),
       panelAccountEmail: document.getElementById("panelAccountEmail"),
@@ -1032,6 +1069,18 @@
       els.passwordMessage.className = "auth-message" + (type ? " " + type : "");
     }
 
+    function showSiteDialog(message, options = {}) {
+      const { title = "HomeoHelp", type = "success", button = "OK" } = options;
+      els.siteDialogTitle.textContent = title;
+      els.siteDialogMessage.textContent = message;
+      els.siteDialogOk.textContent = button;
+      els.siteDialogCard.classList.toggle("error", type === "error");
+      els.siteDialogIcon.textContent = type === "error" ? "!" : "✓";
+      openOverlay(els.siteDialogBackdrop);
+      window.setTimeout(() => els.siteDialogOk.focus(), 180);
+    }
+
+
     function openPasswordModal(mode="change") {
       if (!authClient) {
         setAuthMessage("Account service is not configured yet.", "error");
@@ -1078,7 +1127,7 @@
 
     async function handleChangePasswordRequest() {
       if (!authClient || !currentUser?.email) {
-        alert("Please sign in first.");
+        showSiteDialog("Please sign in first.", { title: "Sign in required", type: "error" });
         return;
       }
       const button = els.changePasswordBtn;
@@ -1091,10 +1140,10 @@
         });
         if (error) throw error;
         button.textContent = "Email sent ✓";
-        alert("Password change email sent. Open the email to choose a new password.");
+        showSiteDialog("Password change email sent. Open the email to choose a new password.", { title: "Email sent" });
       } catch (error) {
         button.textContent = originalText;
-        alert(error.message || "Unable to send the password change email.");
+        showSiteDialog(error.message || "Unable to send the password change email.", { title: "Could not send email", type: "error" });
       } finally {
         window.setTimeout(() => {
           button.disabled = false;
@@ -1146,6 +1195,11 @@
       if (error) setAuthMessage(error.message || "Unable to sign out.", "error");
       closeOverlay(els.accountPanel);
     }
+    els.siteDialogOk.addEventListener("click", () => closeOverlay(els.siteDialogBackdrop, 220));
+    els.siteDialogBackdrop.addEventListener("click", event => {
+      if (event.target === els.siteDialogBackdrop) closeOverlay(els.siteDialogBackdrop, 220);
+    });
+
     function toggleAccountPanel() {
       if (!currentUser) return openAuth("login");
       if (els.accountPanel.hidden) openOverlay(els.accountPanel);
@@ -1524,7 +1578,7 @@
     els.subscriptionBuy.addEventListener("click", event => {
       if (!SUBSCRIPTION_URL) {
         event.preventDefault();
-        alert("Add your subscription checkout URL to SUBSCRIPTION_URL in public/index.html.");
+        showSiteDialog("Add your subscription checkout URL to SUBSCRIPTION_URL in public/index.html.", { title: "Subscription setup", type: "error" });
       }
     });
     document.addEventListener("click", event => {
