@@ -1,0 +1,9 @@
+{
+  "name": "homeohelp",
+  "version": "1.0.0",
+  "description": "HomeoHelp - Homeopathy Wellness Assistant",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  }
+}
