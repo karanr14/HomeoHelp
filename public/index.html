@@ -864,11 +864,8 @@
       sidebarToggle: document.getElementById("sidebarToggle"),
       desktopSidebarToggle: document.getElementById("desktopSidebarToggle"),
       accountBtn:    document.getElementById("accountBtn"),
-      topAccountBtn: document.getElementById("topAccountBtn"),
       accountAvatar: document.getElementById("accountAvatar"),
-      topAccountAvatar: document.getElementById("topAccountAvatar"),
       accountName:  document.getElementById("accountName"),
-      topAccountName: document.getElementById("topAccountName"),
       accountEmail: document.getElementById("accountEmail"),
       authBackdrop: document.getElementById("authBackdrop"),
       authClose: document.getElementById("authClose"),
@@ -956,8 +953,6 @@
       els.accountName.textContent = currentUser ? name : "Account";
       els.accountEmail.textContent = currentUser ? email : "Sign in";
       els.accountAvatar.textContent = currentUser ? initials : "?";
-      els.topAccountName.textContent = currentUser ? name : "Account";
-      els.topAccountAvatar.textContent = currentUser ? initials : "?";
       els.panelAccountName.textContent = currentUser ? name : "Account";
       els.panelAccountEmail.textContent = currentUser ? email : "";
       els.panelAccountStatus.textContent = currentUser ? "Signed in" : "Not signed in";
@@ -1576,7 +1571,7 @@
       }
     });
     document.addEventListener("click", event => {
-      if (!event.target.closest("#accountBtn") && !event.target.closest("#topAccountBtn") && !event.target.closest("#accountPanel")) {
+      if (!event.target.closest("#accountBtn") && !event.target.closest("#accountPanel")) {
         if (!els.accountPanel.hidden) closeOverlay(els.accountPanel, 220);
       }
     });
