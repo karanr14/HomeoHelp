@@ -779,6 +779,8 @@
     let authClient = null;
     let currentUser = null;
     let authConfigured = false;
+    let authReady = false;
+    let authInitPromise = null;
 
     function hasHomeoHelpAccess(user = currentUser) {
       const email = String(user?.email || "").trim().toLowerCase();
@@ -803,7 +805,7 @@
       if (!currentUser) {
         closeOverlay(els.subscriptionBackdrop);
         // No guest access: keep the authentication dialog open until a user signs in.
-        if (authConfigured && !els.authBackdrop.classList.contains("open")) openAuth("login");
+        if (authReady && authConfigured && !els.authBackdrop.classList.contains("open")) openAuth("login");
         return;
       }
       els.subscriptionEmail.textContent = currentUser.email || "";
@@ -1000,17 +1002,19 @@
       if (els.profileAccessText) els.profileAccessText.textContent = hasHomeoHelpAccess() ? "Authorized HomeoHelp account" : "Access requires an authorized account";
     }
     async function openProfilePage() {
-      // Refresh the session before deciding whether the user is signed in.
-      // This prevents a race where Supabase is still restoring the session
-      // and currentUser is temporarily null even though the user is signed in.
+      // Always wait for Supabase initialization to finish before deciding
+      // whether the user is signed in. This prevents the Profile button from
+      // opening Login while the existing session is still being restored.
+      if (!authReady && authInitPromise) {
+        try { await authInitPromise; } catch {}
+      }
+
       if (!currentUser && authClient) {
         try {
           const { data, error } = await authClient.auth.getSession();
-          if (!error && data.session?.user) {
-            setCurrentUser(data.session.user);
-          }
+          if (!error && data?.session?.user) setCurrentUser(data.session.user);
         } catch (error) {
-          console.warn("Unable to refresh HomeoHelp session:", error.message);
+          console.warn("Unable to restore HomeoHelp session:", error?.message || error);
         }
       }
 
@@ -1066,17 +1070,22 @@
     }
     async function initAuth() {
       try {
-        const configRes = await fetch("/api/config");
+        const configRes = await fetch("/api/config", { cache: "no-store" });
         const config = await configRes.json().catch(() => ({}));
         if (!configRes.ok || !config.supabaseUrl || !config.supabaseAnonKey) {
           throw new Error(config.error || "Supabase account settings are not configured yet.");
         }
         if (!window.supabase?.createClient) throw new Error("Authentication library failed to load.");
-        authClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+        authClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
+          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+        });
         authConfigured = true;
+
         const { data, error } = await authClient.auth.getSession();
         if (error) throw error;
-        setCurrentUser(data.session?.user || null);
+        setCurrentUser(data?.session?.user || null);
+
         authClient.auth.onAuthStateChange((event, session) => {
           setCurrentUser(session?.user || null);
           if (event === "PASSWORD_RECOVERY") {
@@ -1084,11 +1093,15 @@
           }
         });
       } catch (error) {
-        console.warn("HomeoHelp account system is not configured:", error.message);
+        console.warn("HomeoHelp account system is not configured:", error?.message || error);
         authConfigured = false;
         updateAccountUI();
         openAuth("login");
         setAuthMessage("Please sign in to use HomeoHelp. Account service is currently unavailable.", "error");
+      } finally {
+        authReady = true;
+        updateAccountUI();
+        updateAccessGate();
       }
     }
     async function handleLogin(event) {
@@ -1650,10 +1663,9 @@
     autosize();
     playHomecoming();
     updateAccountUI();
-    // Show sign-in immediately. initAuth() will close it automatically if a valid session exists.
-    openAuth("login");
-    updateAccessGate();
-    initAuth();
+    // Initialize Supabase first. Only show Login after we know there is no
+    // existing session, so Profile never mistakes a restoring session for a guest.
+    authInitPromise = initAuth();
     handlePasswordRecovery();
   </script>
 </body>
