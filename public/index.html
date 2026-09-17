@@ -562,18 +562,12 @@
         <nav class="chat-list" id="savedChatList" aria-label="Saved chats"></nav>
       </div>
       <div class="sidebar-spacer"></div>
-      <button class="account-btn profile-trigger" id="accountBtn" type="button" aria-label="Open Profile">
-        <span class="profile-trigger-icon" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.7"/>
-            <path d="M5.5 20c.7-3.3 3.1-5.2 6.5-5.2s5.8 1.9 6.5 5.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-          </svg>
-        </span>
+      <button class="account-btn" id="accountBtn" type="button" aria-label="Account">
+        <span class="account-avatar" id="accountAvatar">?</span>
         <span class="account-copy">
-          <strong>Profile</strong>
-          <span id="accountEmail">Account settings</span>
+          <strong id="accountName">Account</strong>
+          <span id="accountEmail">Sign in</span>
         </span>
-        <span class="profile-trigger-arrow" aria-hidden="true">›</span>
       </button>
     </aside>
 
@@ -581,7 +575,10 @@
       <header class="topbar">
         <div class="top-actions">
           <button class="icon-btn mobile-menu" id="sidebarToggle" type="button" aria-label="Open sidebar" title="Open sidebar"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.5 5H15.5M2.5 9H15.5M2.5 13H15.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-
+          <button class="icon-btn top-account" id="topAccountBtn" type="button" aria-label="Account" title="Account">
+            <span class="account-avatar" id="topAccountAvatar">?</span>
+            <span class="account-copy"><strong id="topAccountName">Account</strong></span>
+          </button>
         </div>
       </header>
 
@@ -684,52 +681,13 @@
     </section>
   </div>
 
-  <!-- ══ FULL PROFILE PAGE — liquid glass ══ -->
-  <section class="profile-page" id="profilePage" hidden aria-label="Profile and account settings">
-    <div class="profile-liquid" aria-hidden="true"></div>
-    <div class="profile-orb profile-orb-a" aria-hidden="true"></div>
-    <div class="profile-orb profile-orb-b" aria-hidden="true"></div>
-    <div class="profile-inner">
-      <header class="profile-topbar">
-        <button class="profile-back" id="profileBackBtn" type="button" aria-label="Back to Home">
-          <span aria-hidden="true">←</span> Back to Home
-        </button>
-        <div class="profile-brand"><span class="profile-brand-mark">⌁</span><strong>HomeoHelp</strong></div>
-      </header>
-
-      <main class="profile-main">
-        <section class="profile-identity lg-surface">
-          <div class="lg-bend"></div><div class="lg-tint"></div><div class="lg-face"></div><div class="lg-edge"></div>
-          <div class="profile-avatar-large" id="profileAvatarLarge">?</div>
-          <div class="profile-identity-copy">
-            <div class="profile-kicker">YOUR PROFILE</div>
-            <h1 id="profileName">Account</h1>
-            <p id="profileEmail"></p>
-            <span class="profile-status"><span class="profile-status-dot"></span><span id="profileStatus">Signed in</span></span>
-          </div>
-        </section>
-
-        <section class="profile-settings-card lg-surface">
-          <div class="lg-bend"></div><div class="lg-tint"></div><div class="lg-face"></div><div class="lg-edge"></div>
-          <div class="profile-section-title">Account &amp; Security</div>
-          <button class="profile-row" type="button" id="profileAccountDetailsBtn">
-            <span class="profile-row-icon">👤</span><span class="profile-row-copy"><strong>Account details</strong><small>View your account information</small></span><span class="profile-row-arrow">›</span>
-          </button>
-          <button class="profile-row" type="button" id="changePasswordBtn">
-            <span class="profile-row-icon">⌑</span><span class="profile-row-copy"><strong>Change password</strong><small>We'll email you a secure password-change link</small></span><span class="profile-row-arrow">›</span>
-          </button>
-          <div class="profile-row profile-row-static">
-            <span class="profile-row-icon">✦</span><span class="profile-row-copy"><strong>HomeoHelp access</strong><small id="profileAccessText">Checking account access…</small></span>
-          </div>
-          <button class="profile-row profile-row-danger" type="button" id="logoutBtn">
-            <span class="profile-row-icon">↪</span><span class="profile-row-copy"><strong>Sign out</strong><small>Sign out of this HomeoHelp account</small></span><span class="profile-row-arrow">›</span>
-          </button>
-        </section>
-
-        <p class="profile-footer"><span>⌁</span> HomeoHelp <small>Better Health. Naturally.</small></p>
-      </main>
-    </div>
-  </section>
+  <div class="account-panel" id="accountPanel" hidden>
+    <strong id="panelAccountName">Account</strong>
+    <div class="email" id="panelAccountEmail"></div>
+    <div class="auth-status"><span class="dot"></span><span id="panelAccountStatus">Signed in</span></div>
+    <button class="logout-btn" id="changePasswordBtn" type="button">Change password</button>
+    <button class="logout-btn" id="logoutBtn" type="button">Sign out</button>
+  </div>
 
   <!-- ══ PASSWORD RESET / CHANGE PASSWORD ══ -->
   <div class="auth-backdrop" id="passwordBackdrop" hidden>
@@ -779,8 +737,6 @@
     let authClient = null;
     let currentUser = null;
     let authConfigured = false;
-    let authReady = false;
-    let authInitPromise = null;
 
     function hasHomeoHelpAccess(user = currentUser) {
       const email = String(user?.email || "").trim().toLowerCase();
@@ -805,12 +761,11 @@
       if (!currentUser) {
         closeOverlay(els.subscriptionBackdrop);
         // No guest access: keep the authentication dialog open until a user signs in.
-        if (authReady && authConfigured && !els.authBackdrop.classList.contains("open")) openAuth("login");
+        if (authConfigured && !els.authBackdrop.classList.contains("open")) openAuth("login");
         return;
       }
       els.subscriptionEmail.textContent = currentUser.email || "";
       if (authorized) closeOverlay(els.subscriptionBackdrop);
-    if (els.profileAccessText) els.profileAccessText.textContent = authorized ? "Authorized HomeoHelp account" : "Access requires an authorized account";
       else openOverlay(els.subscriptionBackdrop);
       if (SUBSCRIPTION_URL) {
         els.subscriptionBuy.href = SUBSCRIPTION_URL;
@@ -914,6 +869,11 @@
       sidebarToggle: document.getElementById("sidebarToggle"),
       desktopSidebarToggle: document.getElementById("desktopSidebarToggle"),
       accountBtn:    document.getElementById("accountBtn"),
+      topAccountBtn: document.getElementById("topAccountBtn"),
+      accountAvatar: document.getElementById("accountAvatar"),
+      topAccountAvatar: document.getElementById("topAccountAvatar"),
+      accountName:  document.getElementById("accountName"),
+      topAccountName: document.getElementById("topAccountName"),
       accountEmail: document.getElementById("accountEmail"),
       authBackdrop: document.getElementById("authBackdrop"),
       authClose: document.getElementById("authClose"),
@@ -944,6 +904,10 @@
       siteDialogTitle: document.getElementById("siteDialogTitle"),
       siteDialogMessage: document.getElementById("siteDialogMessage"),
       siteDialogOk: document.getElementById("siteDialogOk"),
+      accountPanel: document.getElementById("accountPanel"),
+      panelAccountName: document.getElementById("panelAccountName"),
+      panelAccountEmail: document.getElementById("panelAccountEmail"),
+      panelAccountStatus: document.getElementById("panelAccountStatus"),
       logoutBtn: document.getElementById("logoutBtn"),
     };
     function persist() {
@@ -992,54 +956,17 @@
     }
     function updateAccountUI() {
       const name = displayNameForUser(currentUser);
-      const email = currentUser?.email || "";
+      const email = currentUser?.email || "Sign in";
       const initials = initialsForUser(currentUser);
-      if (els.accountEmail) els.accountEmail.textContent = currentUser ? "Account settings" : "Sign in to continue";
-      if (els.profileName) els.profileName.textContent = currentUser ? name : "Account";
-      if (els.profileEmail) els.profileEmail.textContent = email;
-      if (els.profileAvatarLarge) els.profileAvatarLarge.textContent = currentUser ? initials : "?";
-      if (els.profileStatus) els.profileStatus.textContent = currentUser ? "Signed in" : "Not signed in";
-      if (els.profileAccessText) els.profileAccessText.textContent = hasHomeoHelpAccess() ? "Authorized HomeoHelp account" : "Access requires an authorized account";
-    }
-    async function openProfilePage() {
-      // Always wait for Supabase initialization to finish before deciding
-      // whether the user is signed in. This prevents the Profile button from
-      // opening Login while the existing session is still being restored.
-      if (!authReady && authInitPromise) {
-        try { await authInitPromise; } catch {}
-      }
-
-      if (!currentUser && authClient) {
-        try {
-          const { data, error } = await authClient.auth.getSession();
-          if (!error && data?.session?.user) setCurrentUser(data.session.user);
-        } catch (error) {
-          console.warn("Unable to restore HomeoHelp session:", error?.message || error);
-        }
-      }
-
-      if (!currentUser) {
-        openAuth("login");
-        return;
-      }
-
-      updateAccountUI();
-      els.app.classList.add("profile-transitioning");
-      window.setTimeout(() => {
-        els.app.hidden = true;
-        els.app.classList.remove("profile-transitioning");
-        els.profilePage.hidden = false;
-        requestAnimationFrame(() => requestAnimationFrame(() => els.profilePage.classList.add("open")));
-        updateAccountUI();
-      }, 360);
-    }
-    function closeProfilePage() {
-      els.profilePage.classList.remove("open");
-      window.setTimeout(() => {
-        els.profilePage.hidden = true;
-        els.app.hidden = false;
-        requestAnimationFrame(() => { els.app.classList.remove("profile-transitioning"); });
-      }, 430);
+      els.accountName.textContent = currentUser ? name : "Account";
+      els.accountEmail.textContent = currentUser ? email : "Sign in";
+      els.accountAvatar.textContent = currentUser ? initials : "?";
+      els.topAccountName.textContent = currentUser ? name : "Account";
+      els.topAccountAvatar.textContent = currentUser ? initials : "?";
+      els.panelAccountName.textContent = currentUser ? name : "Account";
+      els.panelAccountEmail.textContent = currentUser ? email : "";
+      els.panelAccountStatus.textContent = currentUser ? "Signed in" : "Not signed in";
+      els.logoutBtn.textContent = currentUser ? "Sign out" : "Close";
     }
     async function switchToUserChats() {
       state.chats = loadChats(); // instant local cache while the network call is in flight
@@ -1064,28 +991,24 @@
       if (previousId !== nextId) switchToUserChats();
       if (currentUser) {
         closeOverlay(els.authBackdrop);
+        closeOverlay(els.accountPanel);
       } else if (authConfigured) {
         openAuth("login");
       }
     }
     async function initAuth() {
       try {
-        const configRes = await fetch("/api/config", { cache: "no-store" });
+        const configRes = await fetch("/api/config");
         const config = await configRes.json().catch(() => ({}));
         if (!configRes.ok || !config.supabaseUrl || !config.supabaseAnonKey) {
           throw new Error(config.error || "Supabase account settings are not configured yet.");
         }
         if (!window.supabase?.createClient) throw new Error("Authentication library failed to load.");
-
-        authClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
-          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-        });
+        authClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
         authConfigured = true;
-
         const { data, error } = await authClient.auth.getSession();
         if (error) throw error;
-        setCurrentUser(data?.session?.user || null);
-
+        setCurrentUser(data.session?.user || null);
         authClient.auth.onAuthStateChange((event, session) => {
           setCurrentUser(session?.user || null);
           if (event === "PASSWORD_RECOVERY") {
@@ -1093,15 +1016,11 @@
           }
         });
       } catch (error) {
-        console.warn("HomeoHelp account system is not configured:", error?.message || error);
+        console.warn("HomeoHelp account system is not configured:", error.message);
         authConfigured = false;
         updateAccountUI();
         openAuth("login");
         setAuthMessage("Please sign in to use HomeoHelp. Account service is currently unavailable.", "error");
-      } finally {
-        authReady = true;
-        updateAccountUI();
-        updateAccessGate();
       }
     }
     async function handleLogin(event) {
@@ -1274,12 +1193,18 @@
       if (!authClient) return;
       const { error } = await authClient.auth.signOut();
       if (error) setAuthMessage(error.message || "Unable to sign out.", "error");
-      closeProfilePage();
+      closeOverlay(els.accountPanel);
     }
     els.siteDialogOk.addEventListener("click", () => closeOverlay(els.siteDialogBackdrop, 220));
     els.siteDialogBackdrop.addEventListener("click", event => {
       if (event.target === els.siteDialogBackdrop) closeOverlay(els.siteDialogBackdrop, 220);
     });
+
+    function toggleAccountPanel() {
+      if (!currentUser) return openAuth("login");
+      if (els.accountPanel.hidden) openOverlay(els.accountPanel);
+      else closeOverlay(els.accountPanel, 220);
+    }
 
     function startNewChat() {
       state.activeChatId = null;
@@ -1630,9 +1555,8 @@
       if (window.matchMedia("(max-width: 760px)").matches) toggleMobileSidebar();
       else setSidebarCollapsed(!state.sidebarCollapsed);
     });
-    els.accountBtn.addEventListener("click", openProfilePage);
-    els.profileBackBtn.addEventListener("click", closeProfilePage);
-    els.profileAccountDetailsBtn.addEventListener("click", () => showSiteDialog(els.profileEmail.textContent || "Your signed-in HomeoHelp account.", { title: "Account details" }));
+    els.accountBtn.addEventListener("click", toggleAccountPanel);
+    els.topAccountBtn.addEventListener("click", toggleAccountPanel);
     els.authClose.addEventListener("click", closeAuth);
     els.authBackdrop.addEventListener("click", event => { if (event.target === els.authBackdrop) closeAuth(); });
     els.loginTab.addEventListener("click", () => setAuthMode("login"));
@@ -1641,7 +1565,7 @@
     els.signupForm.addEventListener("submit", handleSignup);
     els.forgotPasswordBtn.addEventListener("click", handleForgotPassword);
     els.changePasswordBtn.addEventListener("click", () => {
-      
+      closeOverlay(els.accountPanel, 180);
       handleChangePasswordRequest();
     });
     els.passwordClose.addEventListener("click", () => closeOverlay(els.passwordBackdrop));
@@ -1657,15 +1581,21 @@
         showSiteDialog("Add your subscription checkout URL to SUBSCRIPTION_URL in public/index.html.", { title: "Subscription setup", type: "error" });
       }
     });
+    document.addEventListener("click", event => {
+      if (!event.target.closest("#accountBtn") && !event.target.closest("#topAccountBtn") && !event.target.closest("#accountPanel")) {
+        if (!els.accountPanel.hidden) closeOverlay(els.accountPanel, 220);
+      }
+    });
 
     setSidebarCollapsed(state.sidebarCollapsed);
     renderMessages();
     autosize();
     playHomecoming();
     updateAccountUI();
-    // Initialize Supabase first. Only show Login after we know there is no
-    // existing session, so Profile never mistakes a restoring session for a guest.
-    authInitPromise = initAuth();
+    // Show sign-in immediately. initAuth() will close it automatically if a valid session exists.
+    openAuth("login");
+    updateAccessGate();
+    initAuth();
     handlePasswordRecovery();
   </script>
 </body>
