@@ -403,9 +403,9 @@
     .font-size-setting{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
     .font-size-label{font-size:14px;font-weight:600;color:var(--text);display:flex;justify-content:space-between;align-items:center}
     .font-size-value{font-size:12px;color:var(--muted);font-weight:500}
-    .slider-container-glass{position:relative;width:100%;height:10px;background:#1a1f1d;border-radius:999px;cursor:pointer}
+    .slider-container-glass{position:relative;width:100%;height:10px;background:#1a1f1d;border-radius:999px;cursor:pointer;touch-action:none}
     .slider-progress-glass{position:absolute;height:100%;background:linear-gradient(117deg, #2dd4a7 0%, #72f6cd 100%);border-radius:999px;width:0%;z-index:1;transition:width 0.1s ease}
-    .slider-thumb-glass{position:absolute;top:50%;transform:translate(-50%, -50%);width:65px;height:42px;border-radius:999px;cursor:pointer;z-index:2;background-color:#1a2420;box-shadow:0 1px 8px 0 rgba(0, 0, 0, 0.3), 0 0 2px 0 rgba(45, 212, 167, 0.2);overflow:hidden;transition:transform 0.15s ease, height 0.15s ease}
+    .slider-thumb-glass{position:absolute;top:50%;transform:translate(-50%, -50%);width:65px;height:42px;border-radius:999px;cursor:grab;z-index:2;background-color:#1a2420;box-shadow:0 1px 8px 0 rgba(0, 0, 0, 0.3), 0 0 2px 0 rgba(45, 212, 167, 0.2);overflow:hidden;transition:transform 0.15s ease, height 0.15s ease}
     .slider-thumb-glass-filter{position:absolute;inset:0;z-index:0;backdrop-filter:blur(0.6px);-webkit-backdrop-filter:blur(0.6px);filter:url(#mini-liquid-lens)}
     .slider-thumb-glass-overlay{position:absolute;inset:0;z-index:1;background-color:rgba(45, 212, 167, 0.08)}
     .slider-thumb-glass-specular{position:absolute;inset:0;z-index:2;border-radius:inherit;box-shadow:inset 1px 1px 0 rgba(255, 255, 255, 0.15), inset 1px 3px 0 rgba(45, 212, 167, 0.12), inset 0 0 22px rgb(45, 212, 167 / 20%), inset -1px -1px 0 rgba(45, 212, 167, 0.08)}
@@ -413,6 +413,8 @@
     .slider-thumb-glass-overlay,
     .slider-thumb-glass-specular{opacity:0;transition:opacity 0.15s ease}
     .slider-thumb-glass.active{background-color:transparent;box-shadow:0 1px 12px rgba(45, 212, 167, 0.4)}
+    .slider-thumb-glass:focus-visible{outline:2px solid var(--accent-2);outline-offset:4px}
+    .slider-thumb-glass.active{cursor:grabbing}
     .slider-thumb-glass.active .slider-thumb-glass-filter,
     .slider-thumb-glass.active .slider-thumb-glass-overlay,
     .slider-thumb-glass.active .slider-thumb-glass-specular{opacity:1}
@@ -703,6 +705,7 @@
       <header class="topbar">
         <div class="top-actions">
           <button class="icon-btn mobile-menu" id="sidebarToggle" type="button" aria-label="Open sidebar" title="Open sidebar"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.5 5H15.5M2.5 9H15.5M2.5 13H15.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+          <button class="icon-btn settings-btn" id="settingsOpen" type="button" aria-label="Open settings" title="Open settings">⚙</button>
         </div>
       </header>
 
@@ -830,9 +833,9 @@
         <span>Font Size</span>
         <span class="font-size-value" id="fontSizeValue">16px</span>
       </div>
-      <div class="slider-container-glass" id="fontSizeSlider">
+      <div class="slider-container-glass" id="fontSizeSlider" role="group" aria-label="Font size">
         <div class="slider-progress-glass" id="fontSizeProgress"></div>
-        <div class="slider-thumb-glass" id="fontSizeThumb">
+        <div class="slider-thumb-glass" id="fontSizeThumb" role="slider" tabindex="0" aria-label="Font size" aria-valuemin="12" aria-valuemax="24" aria-valuenow="16" aria-valuetext="16 pixels">
           <div class="slider-thumb-glass-filter"></div>
           <div class="slider-thumb-glass-overlay"></div>
           <div class="slider-thumb-glass-specular"></div>
@@ -1061,6 +1064,7 @@
       panelAccountStatus: document.getElementById("panelAccountStatus"),
       logoutBtn: document.getElementById("logoutBtn"),
       settingsPanel: document.getElementById("settingsPanel"),
+      settingsOpen: document.getElementById("settingsOpen"),
       settingsClose: document.getElementById("settingsClose"),
       fontSizeSlider: document.getElementById("fontSizeSlider"),
       fontSizeProgress: document.getElementById("fontSizeProgress"),
@@ -1785,75 +1789,79 @@
     });
 
     // ── Font Size Slider ──
-    let fontSizeIsDragging = false;
-    let fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
     const MIN_FONT_SIZE = 12;
     const MAX_FONT_SIZE = 24;
+    let fontSizePercent = 0;
 
     function updateFontSizeDisplay(percent) {
       percent = Math.max(0, Math.min(100, percent));
-      const px = (percent / 100) * fontSizeSliderRect.width;
+      fontSizePercent = percent;
+      const fontSize = Math.round((percent / 100) * (MAX_FONT_SIZE - MIN_FONT_SIZE) + MIN_FONT_SIZE);
+      const px = (percent / 100) * els.fontSizeSlider.clientWidth;
       els.fontSizeProgress.style.width = `${percent}%`;
       els.fontSizeThumb.style.left = `${px}px`;
-      
-      // Calculate font size from percentage
-      const fontSize = Math.round((percent / 100) * (MAX_FONT_SIZE - MIN_FONT_SIZE) + MIN_FONT_SIZE);
       els.fontSizeValue.textContent = `${fontSize}px`;
+      els.fontSizeThumb.setAttribute("aria-valuenow", fontSize);
+      els.fontSizeThumb.setAttribute("aria-valuetext", `${fontSize} pixels`);
       document.body.style.fontSize = `${fontSize}px`;
       localStorage.setItem("homeohelp_font_size", fontSize);
     }
 
     function getPercentFromClientX(clientX) {
-      const offsetX = clientX - fontSizeSliderRect.left;
-      return (offsetX / fontSizeSliderRect.width) * 100;
+      const sliderRect = els.fontSizeSlider.getBoundingClientRect();
+      const offsetX = Math.max(0, Math.min(sliderRect.width, clientX - sliderRect.left));
+      return (offsetX / sliderRect.width) * 100;
     }
 
     function onFontSizeMove(clientX) {
-      const percent = getPercentFromClientX(clientX);
-      updateFontSizeDisplay(percent);
+      updateFontSizeDisplay(getPercentFromClientX(clientX));
     }
 
-    els.fontSizeThumb.addEventListener("mousedown", (e) => {
-      fontSizeIsDragging = true;
-      fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
-      onFontSizeMove(e.clientX);
+    els.fontSizeThumb.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      els.fontSizeThumb.setPointerCapture(event.pointerId);
       els.fontSizeThumb.classList.add("active");
+      onFontSizeMove(event.clientX);
     });
 
-    els.fontSizeThumb.addEventListener("touchstart", (e) => {
-      fontSizeIsDragging = true;
-      fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
-      onFontSizeMove(e.touches[0].clientX);
-      els.fontSizeThumb.classList.add("active");
-    }, { passive: true });
-
-    document.addEventListener("mousemove", (e) => {
-      if (fontSizeIsDragging) onFontSizeMove(e.clientX);
+    els.fontSizeThumb.addEventListener("pointermove", (event) => {
+      if (els.fontSizeThumb.hasPointerCapture(event.pointerId)) onFontSizeMove(event.clientX);
     });
 
-    document.addEventListener("touchmove", (e) => {
-      if (fontSizeIsDragging) onFontSizeMove(e.touches[0].clientX);
-    }, { passive: false });
-
-    document.addEventListener("mouseup", () => {
-      fontSizeIsDragging = false;
+    function stopFontSizeDrag() {
       els.fontSizeThumb.classList.remove("active");
+    }
+
+    els.fontSizeThumb.addEventListener("pointerup", stopFontSizeDrag);
+    els.fontSizeThumb.addEventListener("pointercancel", stopFontSizeDrag);
+
+    els.fontSizeSlider.addEventListener("pointerdown", (event) => {
+      if (event.target === els.fontSizeThumb) return;
+      onFontSizeMove(event.clientX);
+      els.fontSizeThumb.focus();
     });
 
-    document.addEventListener("touchend", () => {
-      fontSizeIsDragging = false;
-      els.fontSizeThumb.classList.remove("active");
+    els.fontSizeThumb.addEventListener("keydown", (event) => {
+      const step = event.shiftKey ? 10 : 100 / (MAX_FONT_SIZE - MIN_FONT_SIZE);
+      if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+        event.preventDefault();
+        updateFontSizeDisplay(fontSizePercent + step);
+      } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+        event.preventDefault();
+        updateFontSizeDisplay(fontSizePercent - step);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        updateFontSizeDisplay(0);
+      } else if (event.key === "End") {
+        event.preventDefault();
+        updateFontSizeDisplay(100);
+      }
     });
 
-    els.fontSizeSlider.addEventListener("mousedown", (e) => {
-      fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
-      onFontSizeMove(e.clientX);
+    els.settingsOpen.addEventListener("click", () => {
+      openOverlay(els.settingsPanel);
+      els.fontSizeThumb.focus();
     });
-
-    els.fontSizeSlider.addEventListener("touchstart", (e) => {
-      fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
-      onFontSizeMove(e.touches[0].clientX);
-    }, { passive: true });
 
     els.settingsClose.addEventListener("click", () => {
       closeOverlay(els.settingsPanel);
