@@ -107,10 +107,10 @@
     }
 
     /* ── Layout ── */
-    .app{position:relative;z-index:2;display:grid;grid-template-columns:var(--sidebar-w,255px) minmax(0,1fr);gap:18px;height:100vh;padding:18px;transition:grid-template-columns var(--transition-snap)}
+    .app{position:relative;z-index:2;display:grid;grid-template-columns:var(--sidebar-w,255px) minmax(0,1fr);gap:10px;height:100vh;padding:18px;transition:grid-template-columns var(--transition-snap)}
     .app.sidebar-resizing{transition:none}
     .app.sidebar-collapsed{grid-template-columns:72px minmax(0,1fr)}
-    .sidebar-resizer{position:absolute;top:18px;bottom:18px;left:calc(var(--sidebar-w,255px) + 22px);width:10px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none;background:transparent}
+    .sidebar-resizer{position:absolute;top:18px;bottom:18px;left:calc(var(--sidebar-w,255px) + 19px);width:8px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none;background:transparent}
     .sidebar-resizer::before{content:"";width:3px;height:44px;border-radius:999px;background:rgba(255,255,255,.12);transition:background .18s ease,height .18s ease}
     .sidebar-resizer:hover::before,.sidebar-resizer.dragging::before{background:rgba(45,212,167,.6);height:64px}
     .app.sidebar-collapsed .sidebar-resizer{display:none}
