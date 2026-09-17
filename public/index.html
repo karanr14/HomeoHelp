@@ -122,13 +122,6 @@
     .sidebar-resizer::before{content:"";width:3px;height:44px;border-radius:999px;background:rgba(255,255,255,.12);transition:background .18s ease,height .18s ease}
     .sidebar-resizer:hover::before,.sidebar-resizer.dragging::before{background:rgba(45,212,167,.6);height:64px}
     .app.sidebar-collapsed .sidebar-resizer{display:none}
-    /* Quick-start glass pills */
-    .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
-    .chip{appearance:none;-webkit-appearance:none;border:1px solid rgba(255,255,255,.16);border-radius:999px;background:rgba(255,255,255,.055);color:#d9e4e0;padding:11px 16px;font:500 13px/1 Inter,system-ui,sans-serif;letter-spacing:-.01em;cursor:pointer;backdrop-filter:blur(14px) saturate(120%);-webkit-backdrop-filter:blur(14px) saturate(120%);box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 8px 22px rgba(0,0,0,.16);transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease,color .18s ease}
-    .chip:hover{transform:translateY(-1px);border-color:rgba(45,212,167,.30);background:rgba(45,212,167,.075);color:#f0f7f4;box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 10px 26px rgba(0,0,0,.20)}
-    .chip:active{transform:translateY(0) scale(.985)}
-    .chip:focus-visible{outline:2px solid rgba(45,212,167,.45);outline-offset:2px}
-
     @media(max-width:980px){.sidebar-resizer{display:none}}
     .sidebar{display:flex;flex-direction:column;border-radius:var(--radius-lg);padding:18px 14px;min-width:0;transition:padding var(--transition-snap)}
     .sidebar-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 10px 10px 14px;margin:0 0 20px;border:1px solid rgba(164,220,255,.42);border-radius:16px;background:rgba(130,202,239,.14);box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 8px 24px rgba(55,160,210,.08);transition:padding var(--transition-snap),justify-content var(--transition-snap),margin var(--transition-snap),height var(--transition-snap)}
@@ -650,6 +643,7 @@
           <div class="lg-tint"></div>
           <div class="lg-face"></div>
           <div class="lg-edge"></div>
+          <div class="home-particles" id="homeParticles" aria-hidden="true"></div>
 
           <div class="hero-copy">
             <h1 class="home-title"><span data-home-line>Tell me what's</span><br><span class="accent" data-home-line>bothering you.</span></h1>
@@ -927,6 +921,7 @@
       savedSection: document.getElementById("savedSection"),
       newChatBtn:   document.getElementById("newChatBtn"),
       homeBtn:      document.getElementById("homeBtn"),
+      homeParticles: document.getElementById("homeParticles"),
       sidebarToggle: document.getElementById("sidebarToggle"),
       desktopSidebarToggle: document.getElementById("desktopSidebarToggle"),
       accountBtn:    document.getElementById("accountBtn"),
@@ -1470,6 +1465,19 @@
     }
     function playHomecoming() {
       prepareHomeText();
+      els.homeParticles.innerHTML = "";
+      for (let index = 0; index < 46; index++) {
+        const particle = document.createElement("span");
+        particle.className = "home-particle";
+        particle.style.left = `${Math.random() * 100}%`;
+        particle.style.setProperty("--size", `${7 + Math.random() * 5}px`);
+        particle.style.setProperty("--duration", `${5.5 + Math.random() * 1.2}s`);
+        particle.style.setProperty("--delay", "0s");
+        particle.style.setProperty("--drift", `${-45 + Math.random() * 90}px`);
+        particle.style.setProperty("--fall-distance", `${330 + Math.random() * 90}px`);
+        els.homeParticles.appendChild(particle);
+      }
+      window.setTimeout(() => els.homeParticles.classList.add("active"), 1350);
     }
     function showError(msg)  { els.error.textContent = msg; els.error.style.display = msg ? "block" : "none"; }
     function escapeHtml(v)   { return v.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
