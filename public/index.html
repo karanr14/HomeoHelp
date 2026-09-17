@@ -705,7 +705,8 @@
     let authConfigured = false;
 
     function hasHomeoHelpAccess(user = currentUser) {
-      return String(user?.email || "").trim().toLowerCase() === AUTHORIZED_EMAIL;
+      const email = String(user?.email || "").trim().toLowerCase();
+      return AUTHORIZED_EMAILS.includes(email);
     }
 
     // Animated show/hide for overlay elements (auth modal, subscription
