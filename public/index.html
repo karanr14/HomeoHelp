@@ -1076,6 +1076,33 @@
       }
     }
 
+    async function handleChangePasswordRequest() {
+      if (!authClient || !currentUser?.email) {
+        alert("Please sign in first.");
+        return;
+      }
+      const button = els.changePasswordBtn;
+      button.disabled = true;
+      const originalText = button.textContent;
+      button.textContent = "Sending email…";
+      try {
+        const { error } = await authClient.auth.resetPasswordForEmail(currentUser.email, {
+          redirectTo: APP_URL
+        });
+        if (error) throw error;
+        button.textContent = "Email sent ✓";
+        alert("Password change email sent. Open the email to choose a new password.");
+      } catch (error) {
+        button.textContent = originalText;
+        alert(error.message || "Unable to send the password change email.");
+      } finally {
+        window.setTimeout(() => {
+          button.disabled = false;
+          button.textContent = originalText;
+        }, 2500);
+      }
+    }
+
     async function handlePasswordUpdate(event) {
       event.preventDefault();
       if (!authClient) {
@@ -1485,7 +1512,7 @@
     els.forgotPasswordBtn.addEventListener("click", handleForgotPassword);
     els.changePasswordBtn.addEventListener("click", () => {
       closeOverlay(els.accountPanel, 180);
-      openPasswordModal("change");
+      handleChangePasswordRequest();
     });
     els.passwordClose.addEventListener("click", () => closeOverlay(els.passwordBackdrop));
     els.passwordBackdrop.addEventListener("click", event => {
