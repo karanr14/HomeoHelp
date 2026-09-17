@@ -106,6 +106,14 @@
       pointer-events: none;
     }
 
+    /* ── Liquid glass press system (base — kept early so later, more specific
+         rules like position:absolute on .chat-menu-btn still win as intended) ── */
+    .liquid-press{position:relative}
+    .liquid-ripple{position:absolute;border-radius:50%;pointer-events:none;z-index:5;
+      background:radial-gradient(circle, rgba(255,255,255,.4), rgba(45,212,167,.14) 55%, transparent 72%);
+      transform:scale(0);opacity:.9;animation:liquid-ripple-pop .6s cubic-bezier(.22,1,.36,1) forwards}
+    @keyframes liquid-ripple-pop{to{transform:scale(1);opacity:0}}
+
     /* ── Layout ── */
     .app{position:relative;z-index:2;display:grid;grid-template-columns:var(--sidebar-w,255px) minmax(0,1fr);gap:10px;height:100vh;padding:18px;transition:grid-template-columns var(--transition-snap)}
     .app.sidebar-resizing{transition:none}
@@ -531,7 +539,85 @@
     .app.sidebar-collapsed .account-copy{opacity:0;transform:translateX(-10px);pointer-events:none;width:0}
     .app.sidebar-collapsed .account-btn{width:40px;height:40px;padding:0;margin:0 auto;justify-content:center;gap:0}
 
+    /* ═══════════════════════════════════════════════════════════
+       LIQUID GLASS ANIMATIONS — Apple-style springy motion
+       Placed last so the press state (.is-pressed) always beats any
+       element's own :hover transform at equal specificity.
+    ═══════════════════════════════════════════════════════════ */
+    .liquid-press{transition:transform .5s cubic-bezier(0.34,1.56,0.64,1),background .2s ease,border-color .2s ease,box-shadow .2s ease}
+    .liquid-press.is-pressed{transform:scale(0.93)}
+    .app.sidebar-collapsed .liquid-press.is-pressed{transform:scale(0.93)}
+
+    /* Sidebar: fluid squish while dragging + spring settle on release */
+    .sidebar{transition:transform var(--transition-snap)}
+    .app.sidebar-resizing .sidebar,.app.sidebar-resizing .sidebar-resizer::before{transition:none}
+    .app:not(.sidebar-resizing) .sidebar{transition:padding var(--transition-snap)}
+    .sidebar-resizer.dragging{filter:drop-shadow(0 0 10px rgba(45,212,167,.35))}
+    .app.sidebar-resizing .lg-bend{filter:blur(0.5px)}
+    .sidebar-collapse{transition:background .18s ease,border-color .18s ease,transform .5s cubic-bezier(0.34,1.56,0.64,1)}
+    .app.sidebar-collapsed .sidebar-collapse,.app:not(.sidebar-collapsed) .sidebar-collapse{animation:sidebar-toggle-pop .5s cubic-bezier(0.34,1.56,0.64,1)}
+    @keyframes sidebar-toggle-pop{0%{transform:scale(1)}40%{transform:scale(0.82) rotate(-6deg)}100%{transform:scale(1) rotate(0)}}
+
+    /* Bubbles: pronounced liquid morph pop */
+    .bubble{animation:bubble-in .62s cubic-bezier(0.34,1.56,0.64,1) both}
+    @keyframes bubble-in{0%{opacity:0;transform:translateY(14px) scale(.88);border-radius:30px 30px 10px 10px;filter:blur(8px)}60%{opacity:1;transform:translateY(-3px) scale(1.02);border-radius:14px 14px 17px 17px;filter:blur(0)}100%{opacity:1;transform:translateY(0) scale(1);border-radius:16px;filter:blur(0)}}
+    .bubble.assistant{border-top-left-radius:6px!important}
+    .bubble.user{border-top-right-radius:6px!important}
+
+    /* Panels & modals: springy morph open, quick fluid close */
+    .auth-card,.subscription-card,.site-dialog-card,.account-panel,.chat-menu{
+      transition:transform .55s cubic-bezier(0.34,1.56,0.64,1),filter .4s ease,opacity .3s ease!important;
+    }
+    .auth-backdrop:not(.open) .auth-card,.subscription-backdrop:not(.open) .subscription-card,
+    .site-dialog-backdrop:not(.open) .site-dialog-card{transition:transform .22s cubic-bezier(.4,0,1,1),filter .18s ease,opacity .18s ease!important}
+    .account-panel:not(.open){transition:transform .2s cubic-bezier(.4,0,1,1),opacity .16s ease!important}
+    .chat-menu:not(.open){transition:transform .18s cubic-bezier(.4,0,1,1),opacity .14s ease!important}
+
+    /* Sign-in/out and new-chat morph feedback */
+    .new-chat.is-pressed .nav-icon{transform:scale(0.85) rotate(-8deg)}
+    .icon-btn.is-pressed,.account-btn.is-pressed,.chat-open.is-pressed{filter:brightness(1.08)}
+
   </style>
+  <script>
+    // Liquid-glass press + ripple feedback, via delegation so it also covers
+    // elements re-created later (e.g. chat list rows get rebuilt on every render).
+    (function () {
+      const SELECTOR = [
+        ".icon-btn", ".chip", ".new-chat", ".account-btn", ".chat-open", ".chat-menu-btn",
+        ".sidebar-collapse", ".site-dialog-btn", ".subscription-buy", ".subscription-signout",
+        ".logout-btn", ".auth-close", ".auth-tab", ".auth-submit", ".auth-link",
+        ".copy-message", ".home-link", ".send"
+      ].join(",");
+      const pressed = new Set();
+      function spawnRipple(el, event) {
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+        const ripple = document.createElement("span");
+        ripple.className = "liquid-ripple";
+        const size = Math.max(rect.width, rect.height) * 1.35;
+        const cx = typeof event.clientX === "number" ? event.clientX : rect.left + rect.width / 2;
+        const cy = typeof event.clientY === "number" ? event.clientY : rect.top + rect.height / 2;
+        ripple.style.width = ripple.style.height = size + "px";
+        ripple.style.left = (cx - rect.left - size / 2) + "px";
+        ripple.style.top = (cy - rect.top - size / 2) + "px";
+        el.appendChild(ripple);
+        ripple.addEventListener("animationend", () => ripple.remove());
+      }
+      document.addEventListener("pointerdown", event => {
+        const el = event.target.closest(SELECTOR);
+        if (!el) return;
+        el.classList.add("liquid-press", "is-pressed");
+        pressed.add(el);
+        spawnRipple(el, event);
+      }, { passive: true });
+      function releaseAll() {
+        pressed.forEach(el => el.classList.remove("is-pressed"));
+        pressed.clear();
+      }
+      document.addEventListener("pointerup", releaseAll);
+      document.addEventListener("pointercancel", releaseAll);
+    })();
+  </script>
 </head>
 <body>
 
