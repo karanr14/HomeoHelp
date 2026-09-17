@@ -398,6 +398,25 @@
     .field{margin-bottom:14px}
     .field label{display:block;font-size:10px;letter-spacing:.08em;color:#81928c;margin:0 0 7px}
     .field select{width:100%;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--text);padding:0 12px;outline:0}
+
+    /* ── Font Size Slider (Glassmorphism) ── */
+    .font-size-setting{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
+    .font-size-label{font-size:14px;font-weight:600;color:var(--text);display:flex;justify-content:space-between;align-items:center}
+    .font-size-value{font-size:12px;color:var(--muted);font-weight:500}
+    .slider-container-glass{position:relative;width:100%;height:10px;background:#1a1f1d;border-radius:999px;cursor:pointer}
+    .slider-progress-glass{position:absolute;height:100%;background:linear-gradient(117deg, #2dd4a7 0%, #72f6cd 100%);border-radius:999px;width:0%;z-index:1;transition:width 0.1s ease}
+    .slider-thumb-glass{position:absolute;top:50%;transform:translate(-50%, -50%);width:65px;height:42px;border-radius:999px;cursor:pointer;z-index:2;background-color:#1a2420;box-shadow:0 1px 8px 0 rgba(0, 0, 0, 0.3), 0 0 2px 0 rgba(45, 212, 167, 0.2);overflow:hidden;transition:transform 0.15s ease, height 0.15s ease}
+    .slider-thumb-glass-filter{position:absolute;inset:0;z-index:0;backdrop-filter:blur(0.6px);-webkit-backdrop-filter:blur(0.6px);filter:url(#mini-liquid-lens)}
+    .slider-thumb-glass-overlay{position:absolute;inset:0;z-index:1;background-color:rgba(45, 212, 167, 0.08)}
+    .slider-thumb-glass-specular{position:absolute;inset:0;z-index:2;border-radius:inherit;box-shadow:inset 1px 1px 0 rgba(255, 255, 255, 0.15), inset 1px 3px 0 rgba(45, 212, 167, 0.12), inset 0 0 22px rgb(45, 212, 167 / 20%), inset -1px -1px 0 rgba(45, 212, 167, 0.08)}
+    .slider-thumb-glass-filter,
+    .slider-thumb-glass-overlay,
+    .slider-thumb-glass-specular{opacity:0;transition:opacity 0.15s ease}
+    .slider-thumb-glass.active{background-color:transparent;box-shadow:0 1px 12px rgba(45, 212, 167, 0.4)}
+    .slider-thumb-glass.active .slider-thumb-glass-filter,
+    .slider-thumb-glass.active .slider-thumb-glass-overlay,
+    .slider-thumb-glass.active .slider-thumb-glass-specular{opacity:1}
+    .slider-thumb-glass:active{transform:translate(-50%, -50%) scaleY(0.98) scaleX(1.1)}
     .field select:focus{border-color:rgba(45,212,167,.3);box-shadow:0 0 0 3px rgba(45,212,167,.06)}
     .btn{border:1px solid rgba(255,255,255,.12);padding:10px 13px;border-radius:11px;background:rgba(255,255,255,.05);color:#c3d0cc;transition:.18s ease}
     .btn:hover{border-color:rgba(45,212,167,.25);background:rgba(45,212,167,.08);color:var(--text)}
@@ -621,6 +640,24 @@
 </head>
 <body>
 
+  <!-- SVG Filters -->
+  <svg width="0" height="0">
+    <filter id="mini-liquid-lens" x="-50%" y="-50%" width="200%" height="200%">
+      <feImage x="0" y="0" result="normalMap" xlink:href="data:image/svg+xml;utf8,
+      <svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'>
+        <radialGradient id='invmap' cx='50%' cy='50%' r='75%'>
+          <stop offset='0%' stop-color='rgb(128,128,255)'/>
+          <stop offset='90%' stop-color='rgb(255,255,255)'/>
+        </radialGradient>
+        <rect width='100%' height='100%' fill='url(#invmap)'/>
+      </svg>" />
+      <feDisplacementMap in="SourceGraphic" in2="normalMap" scale="-252" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+      <feMerge>
+        <feMergeNode in="displaced" />
+      </feMerge>
+    </filter>
+  </svg>
+
   <!-- Background image -->
   <img id="bgImg" alt=""
     src="assets/dark.jpg"
@@ -774,6 +811,34 @@
     <div class="auth-status"><span class="dot"></span><span id="panelAccountStatus">Signed in</span></div>
     <button class="logout-btn" id="changePasswordBtn" type="button">Change password</button>
     <button class="logout-btn" id="logoutBtn" type="button">Sign out</button>
+  </div>
+
+  <!-- ══ SETTINGS PANEL ══ -->
+  <div class="settings-panel" id="settingsPanel" hidden>
+    <div class="settings-bend"></div>
+    <div class="settings-face"></div>
+    <div class="settings-edge"></div>
+    <div class="settings-tint"></div>
+    
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button class="icon-btn close" id="settingsClose" type="button" aria-label="Close settings">×</button>
+    </div>
+
+    <div class="font-size-setting">
+      <div class="font-size-label">
+        <span>Font Size</span>
+        <span class="font-size-value" id="fontSizeValue">16px</span>
+      </div>
+      <div class="slider-container-glass" id="fontSizeSlider">
+        <div class="slider-progress-glass" id="fontSizeProgress"></div>
+        <div class="slider-thumb-glass" id="fontSizeThumb">
+          <div class="slider-thumb-glass-filter"></div>
+          <div class="slider-thumb-glass-overlay"></div>
+          <div class="slider-thumb-glass-specular"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ══ PASSWORD RESET / CHANGE PASSWORD ══ -->
@@ -995,6 +1060,12 @@
       panelAccountEmail: document.getElementById("panelAccountEmail"),
       panelAccountStatus: document.getElementById("panelAccountStatus"),
       logoutBtn: document.getElementById("logoutBtn"),
+      settingsPanel: document.getElementById("settingsPanel"),
+      settingsClose: document.getElementById("settingsClose"),
+      fontSizeSlider: document.getElementById("fontSizeSlider"),
+      fontSizeProgress: document.getElementById("fontSizeProgress"),
+      fontSizeThumb: document.getElementById("fontSizeThumb"),
+      fontSizeValue: document.getElementById("fontSizeValue"),
     };
     function persist() {
       const activeChat = state.chats.find(chat => chat.id === state.activeChatId);
@@ -1712,6 +1783,86 @@
         if (!els.accountPanel.hidden) closeOverlay(els.accountPanel, 220);
       }
     });
+
+    // ── Font Size Slider ──
+    let fontSizeIsDragging = false;
+    let fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
+    const MIN_FONT_SIZE = 12;
+    const MAX_FONT_SIZE = 24;
+
+    function updateFontSizeDisplay(percent) {
+      percent = Math.max(0, Math.min(100, percent));
+      const px = (percent / 100) * fontSizeSliderRect.width;
+      els.fontSizeProgress.style.width = `${percent}%`;
+      els.fontSizeThumb.style.left = `${px}px`;
+      
+      // Calculate font size from percentage
+      const fontSize = Math.round((percent / 100) * (MAX_FONT_SIZE - MIN_FONT_SIZE) + MIN_FONT_SIZE);
+      els.fontSizeValue.textContent = `${fontSize}px`;
+      document.body.style.fontSize = `${fontSize}px`;
+      localStorage.setItem("homeohelp_font_size", fontSize);
+    }
+
+    function getPercentFromClientX(clientX) {
+      const offsetX = clientX - fontSizeSliderRect.left;
+      return (offsetX / fontSizeSliderRect.width) * 100;
+    }
+
+    function onFontSizeMove(clientX) {
+      const percent = getPercentFromClientX(clientX);
+      updateFontSizeDisplay(percent);
+    }
+
+    els.fontSizeThumb.addEventListener("mousedown", (e) => {
+      fontSizeIsDragging = true;
+      fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
+      onFontSizeMove(e.clientX);
+      els.fontSizeThumb.classList.add("active");
+    });
+
+    els.fontSizeThumb.addEventListener("touchstart", (e) => {
+      fontSizeIsDragging = true;
+      fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
+      onFontSizeMove(e.touches[0].clientX);
+      els.fontSizeThumb.classList.add("active");
+    }, { passive: true });
+
+    document.addEventListener("mousemove", (e) => {
+      if (fontSizeIsDragging) onFontSizeMove(e.clientX);
+    });
+
+    document.addEventListener("touchmove", (e) => {
+      if (fontSizeIsDragging) onFontSizeMove(e.touches[0].clientX);
+    }, { passive: false });
+
+    document.addEventListener("mouseup", () => {
+      fontSizeIsDragging = false;
+      els.fontSizeThumb.classList.remove("active");
+    });
+
+    document.addEventListener("touchend", () => {
+      fontSizeIsDragging = false;
+      els.fontSizeThumb.classList.remove("active");
+    });
+
+    els.fontSizeSlider.addEventListener("mousedown", (e) => {
+      fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
+      onFontSizeMove(e.clientX);
+    });
+
+    els.fontSizeSlider.addEventListener("touchstart", (e) => {
+      fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
+      onFontSizeMove(e.touches[0].clientX);
+    }, { passive: true });
+
+    els.settingsClose.addEventListener("click", () => {
+      closeOverlay(els.settingsPanel);
+    });
+
+    // Initialize font size from localStorage
+    const savedFontSize = parseInt(localStorage.getItem("homeohelp_font_size")) || 16;
+    const initialPercent = ((savedFontSize - MIN_FONT_SIZE) / (MAX_FONT_SIZE - MIN_FONT_SIZE)) * 100;
+    updateFontSizeDisplay(initialPercent);
 
     setSidebarCollapsed(state.sidebarCollapsed);
     renderMessages();
