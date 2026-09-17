@@ -479,6 +479,9 @@
     .auth-label input{width:100%;border:1px solid rgba(255,255,255,.13);border-radius:12px;background:rgba(0,0,0,.14);color:var(--text);padding:11px 12px;outline:none}
     .auth-label input:focus{border-color:rgba(45,212,167,.5);box-shadow:0 0 0 3px rgba(45,212,167,.08)}
     .auth-submit{border:1px solid rgba(45,212,167,.3);border-radius:12px;padding:11px 14px;color:#06251d;background:var(--accent);font-weight:700;margin-top:3px}
+    .auth-link{border:0;background:transparent;color:var(--accent);font-size:12px;padding:7px 4px;cursor:pointer;text-align:center}
+    .auth-link:hover{text-decoration:underline}
+    .auth-link:disabled{opacity:.6;cursor:wait}
     .auth-submit:disabled{opacity:.6;cursor:wait}
     .auth-message{min-height:18px;margin:2px 0 0;color:#9eb5ac;font-size:12px;line-height:1.45}
     .auth-message.error{color:#ffb9ba}.auth-message.success{color:#9ff3d6}
@@ -648,6 +651,7 @@
         <label class="auth-label">Email<input id="loginEmail" type="email" autocomplete="email" required></label>
         <label class="auth-label">Password<input id="loginPassword" type="password" autocomplete="current-password" required minlength="6"></label>
         <button class="auth-submit" id="loginSubmit" type="submit">Sign in</button>
+        <button class="auth-link" id="forgotPasswordBtn" type="button">Forgot password?</button>
       </form>
 
       <form class="auth-form" id="signupForm" hidden>
@@ -666,7 +670,34 @@
     <strong id="panelAccountName">Account</strong>
     <div class="email" id="panelAccountEmail"></div>
     <div class="auth-status"><span class="dot"></span><span id="panelAccountStatus">Signed in</span></div>
+    <button class="logout-btn" id="changePasswordBtn" type="button">Change password</button>
     <button class="logout-btn" id="logoutBtn" type="button">Sign out</button>
+  </div>
+
+  <div class="auth-backdrop" id="passwordBackdrop" hidden>
+    <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="passwordTitle">
+      <div class="auth-head">
+        <div>
+          <h2 id="passwordTitle">Change password</h2>
+          <p id="passwordSubtitle">Enter your new password below.</p>
+        </div>
+        <button class="auth-close" id="passwordClose" type="button" aria-label="Close">×</button>
+      </div>
+
+      <form class="auth-form" id="passwordForm">
+        <label class="auth-label">
+          New password
+          <input id="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+        </label>
+        <label class="auth-label">
+          Confirm new password
+          <input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+        </label>
+        <button class="auth-submit" id="passwordSubmit" type="submit">Update password</button>
+      </form>
+
+      <div class="auth-message" id="passwordMessage" aria-live="polite"></div>
+    </section>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -826,6 +857,15 @@
       loginSubmit: document.getElementById("loginSubmit"),
       signupSubmit: document.getElementById("signupSubmit"),
       authMessage: document.getElementById("authMessage"),
+      forgotPasswordBtn: document.getElementById("forgotPasswordBtn"),
+      changePasswordBtn: document.getElementById("changePasswordBtn"),
+      passwordBackdrop: document.getElementById("passwordBackdrop"),
+      passwordClose: document.getElementById("passwordClose"),
+      passwordForm: document.getElementById("passwordForm"),
+      newPassword: document.getElementById("newPassword"),
+      confirmPassword: document.getElementById("confirmPassword"),
+      passwordSubmit: document.getElementById("passwordSubmit"),
+      passwordMessage: document.getElementById("passwordMessage"),
       accountPanel: document.getElementById("accountPanel"),
       panelAccountName: document.getElementById("panelAccountName"),
       panelAccountEmail: document.getElementById("panelAccountEmail"),
@@ -931,7 +971,12 @@
         const { data, error } = await authClient.auth.getSession();
         if (error) throw error;
         setCurrentUser(data.session?.user || null);
-        authClient.auth.onAuthStateChange((_event, session) => setCurrentUser(session?.user || null));
+        authClient.auth.onAuthStateChange((event, session) => {
+          setCurrentUser(session?.user || null);
+          if (event === "PASSWORD_RECOVERY") {
+            window.setTimeout(() => openPasswordModal("reset"), 100);
+          }
+        });
       } catch (error) {
         console.warn("HomeoHelp account system is not configured:", error.message);
         authConfigured = false;
@@ -979,6 +1024,99 @@
         els.signupSubmit.disabled = false;
       }
     }
+    function setPasswordMessage(message, type="") {
+      els.passwordMessage.textContent = message;
+      els.passwordMessage.className = "auth-message" + (type ? " " + type : "");
+    }
+
+    function openPasswordModal(mode="change") {
+      if (!authClient) {
+        setAuthMessage("Account service is not configured yet.", "error");
+        return;
+      }
+
+      document.getElementById("passwordTitle").textContent =
+        mode === "reset" ? "Reset password" : "Change password";
+
+      document.getElementById("passwordSubtitle").textContent =
+        mode === "reset"
+          ? "Choose a new password for your HomeoHelp account."
+          : "Enter your new password below.";
+
+      els.passwordForm.reset();
+      setPasswordMessage("");
+      openOverlay(els.passwordBackdrop);
+      window.setTimeout(() => els.newPassword.focus(), 260);
+    }
+
+    async function handleForgotPassword() {
+      if (!authClient) {
+        setAuthMessage("Account service is not configured yet.", "error");
+        return;
+      }
+
+      const email = els.loginEmail.value.trim();
+      if (!email) {
+        setAuthMessage("Enter your email address first.", "error");
+        els.loginEmail.focus();
+        return;
+      }
+
+      els.forgotPasswordBtn.disabled = true;
+      setAuthMessage("Sending password reset email…");
+
+      try {
+        const redirectTo = `${window.location.origin}${window.location.pathname}#reset-password`;
+        const { error } = await authClient.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) throw error;
+        setAuthMessage("Password reset email sent. Check your inbox.", "success");
+      } catch (error) {
+        setAuthMessage(error.message || "Unable to send password reset email.", "error");
+      } finally {
+        els.forgotPasswordBtn.disabled = false;
+      }
+    }
+
+    async function handlePasswordUpdate(event) {
+      event.preventDefault();
+
+      if (!authClient) {
+        setPasswordMessage("Account service is not configured yet.", "error");
+        return;
+      }
+
+      const password = els.newPassword.value;
+      const confirmation = els.confirmPassword.value;
+
+      if (password.length < 8) {
+        setPasswordMessage("Password must be at least 8 characters.", "error");
+        return;
+      }
+
+      if (password !== confirmation) {
+        setPasswordMessage("The passwords do not match.", "error");
+        return;
+      }
+
+      els.passwordSubmit.disabled = true;
+      setPasswordMessage("Updating password…");
+
+      try {
+        const { error } = await authClient.auth.updateUser({ password });
+        if (error) throw error;
+
+        els.passwordForm.reset();
+        setPasswordMessage("Password updated successfully!", "success");
+
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+        window.setTimeout(() => closeOverlay(els.passwordBackdrop), 1200);
+      } catch (error) {
+        setPasswordMessage(error.message || "Unable to update password.", "error");
+      } finally {
+        els.passwordSubmit.disabled = false;
+      }
+    }
+
     async function handleLogout() {
       if (!authClient) return;
       const { error } = await authClient.auth.signOut();
@@ -1348,6 +1486,16 @@
     els.signupTab.addEventListener("click", () => setAuthMode("signup"));
     els.loginForm.addEventListener("submit", handleLogin);
     els.signupForm.addEventListener("submit", handleSignup);
+    els.forgotPasswordBtn.addEventListener("click", handleForgotPassword);
+    els.changePasswordBtn.addEventListener("click", () => {
+      closeOverlay(els.accountPanel, 180);
+      openPasswordModal("change");
+    });
+    els.passwordClose.addEventListener("click", () => closeOverlay(els.passwordBackdrop));
+    els.passwordBackdrop.addEventListener("click", event => {
+      if (event.target === els.passwordBackdrop) closeOverlay(els.passwordBackdrop);
+    });
+    els.passwordForm.addEventListener("submit", handlePasswordUpdate);
     els.logoutBtn.addEventListener("click", handleLogout);
     els.subscriptionSignout.addEventListener("click", handleLogout);
     els.subscriptionBuy.addEventListener("click", event => {
