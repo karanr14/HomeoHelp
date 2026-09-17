@@ -174,8 +174,7 @@
     .status{display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;border:1px solid rgba(45,212,167,.2);background:rgba(45,212,167,.07);color:#b8d6cd;font-size:13px;box-shadow:0 1px 0 rgba(255,255,255,.08) inset}
     .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px rgba(45,212,167,.8);animation:pulse 2.4s ease-in-out infinite}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
-    .content{min-height:0;flex:1;display:flex;flex-direction:column;max-width:1180px;width:100%;margin:0 auto;transition:max-width var(--transition-snap)}
-    .app.sidebar-collapsed .content{max-width:1560px}
+    .content{min-height:0;flex:1;display:flex;flex-direction:column;max-width:min(1560px,calc(100vw - var(--sidebar-actual-w,255px) - 46px));width:100%;margin:0 auto;transition:max-width var(--transition-snap)}
     .content.home-active .hero{flex:1;min-height:0}
     .content.chat-active .chat-shell{flex:1;min-height:0;margin-top:0}
     .content.chat-active .footer{display:none}
@@ -730,8 +729,7 @@
     const STORAGE = { sidebar:"homeohelp_sidebar", sidebarWidth:"homeohelp_sidebar_width", chats:"homeohelp_chats", legacyHistory:"homeohelp_history" };
     const AUTHORIZED_EMAILS = [
       "karanramnani201@gmail.com",
-      "kashish_ramnani@yahoo.com",
-      "sunilpritmani@gmail.com"
+      "kashish_ramnani@yahoo.com"
     ];
     const SUBSCRIPTION_URL = ""; // Add your real checkout URL here when ready.
     // Password-reset emails must always return users to the live HomeoHelp site,
@@ -1331,12 +1329,17 @@
       state.chats.unshift(chat);
       state.activeChatId = chat.id;
     }
+    function updateSidebarActualWidth() {
+      const px = state.sidebarCollapsed ? 72 : state.sidebarWidth;
+      els.app.style.setProperty("--sidebar-actual-w", px + "px");
+    }
     function setSidebarCollapsed(collapsed) {
       state.sidebarCollapsed = collapsed;
       els.app.classList.toggle("sidebar-collapsed", collapsed);
       els.desktopSidebarToggle.textContent = collapsed ? "›" : "‹";
       els.desktopSidebarToggle.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
       els.desktopSidebarToggle.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+      updateSidebarActualWidth();
       persist();
     }
     const SIDEBAR_MIN_WIDTH = 200;
@@ -1345,6 +1348,7 @@
       const clamped = Math.max(SIDEBAR_MIN_WIDTH, Math.min(SIDEBAR_MAX_WIDTH, Math.round(px)));
       state.sidebarWidth = clamped;
       els.app.style.setProperty("--sidebar-w", clamped + "px");
+      updateSidebarActualWidth();
       if (opts.persist !== false) localStorage.setItem(STORAGE.sidebarWidth, String(clamped));
       return clamped;
     }
