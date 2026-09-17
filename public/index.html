@@ -695,7 +695,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const STORAGE = { sidebar:"homeohelp_sidebar", chats:"homeohelp_chats", legacyHistory:"homeohelp_history" };
-    const AUTHORIZED_EMAIL = "karanramnani201@gmail.com";
+    const AUTHORIZED_EMAILS = [
+      "karanramnani201@gmail.com",
+      "kashish_ramnani@yahoo.com"
+    ];
     const SUBSCRIPTION_URL = ""; // Add your real checkout URL here when ready.
     // Password-reset emails must always return users to the live HomeoHelp site,
     // never to localhost or another development machine.
@@ -726,6 +729,8 @@
       document.querySelector(".app")?.classList.toggle("auth-locked", !authorized);
       if (!currentUser) {
         closeOverlay(els.subscriptionBackdrop);
+        // No guest access: keep the authentication dialog open until a user signs in.
+        if (authConfigured && !els.authBackdrop.classList.contains("open")) openAuth("login");
         return;
       }
       els.subscriptionEmail.textContent = currentUser.email || "";
@@ -977,6 +982,8 @@
         console.warn("HomeoHelp account system is not configured:", error.message);
         authConfigured = false;
         updateAccountUI();
+        openAuth("login");
+        setAuthMessage("Please sign in to use HomeoHelp. Account service is currently unavailable.", "error");
       }
     }
     async function handleLogin(event) {
@@ -1504,6 +1511,8 @@
     autosize();
     playHomecoming();
     updateAccountUI();
+    // Show sign-in immediately. initAuth() will close it automatically if a valid session exists.
+    openAuth("login");
     updateAccessGate();
     initAuth();
     handlePasswordRecovery();
