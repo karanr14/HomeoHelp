@@ -479,9 +479,6 @@
     .auth-label input{width:100%;border:1px solid rgba(255,255,255,.13);border-radius:12px;background:rgba(0,0,0,.14);color:var(--text);padding:11px 12px;outline:none}
     .auth-label input:focus{border-color:rgba(45,212,167,.5);box-shadow:0 0 0 3px rgba(45,212,167,.08)}
     .auth-submit{border:1px solid rgba(45,212,167,.3);border-radius:12px;padding:11px 14px;color:#06251d;background:var(--accent);font-weight:700;margin-top:3px}
-    .auth-link{border:0;background:transparent;color:var(--accent);font-size:12px;padding:7px 4px;cursor:pointer;text-align:center}
-    .auth-link:hover{text-decoration:underline}
-    .auth-link:disabled{opacity:.6;cursor:wait}
     .auth-submit:disabled{opacity:.6;cursor:wait}
     .auth-message{min-height:18px;margin:2px 0 0;color:#9eb5ac;font-size:12px;line-height:1.45}
     .auth-message.error{color:#ffb9ba}.auth-message.success{color:#9ff3d6}
@@ -674,6 +671,7 @@
     <button class="logout-btn" id="logoutBtn" type="button">Sign out</button>
   </div>
 
+  <!-- ══ PASSWORD RESET / CHANGE PASSWORD ══ -->
   <div class="auth-backdrop" id="passwordBackdrop" hidden>
     <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="passwordTitle">
       <div class="auth-head">
@@ -685,14 +683,8 @@
       </div>
 
       <form class="auth-form" id="passwordForm">
-        <label class="auth-label">
-          New password
-          <input id="newPassword" type="password" autocomplete="new-password" minlength="8" required>
-        </label>
-        <label class="auth-label">
-          Confirm new password
-          <input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
-        </label>
+        <label class="auth-label">New password<input id="newPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label class="auth-label">Confirm new password<input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
         <button class="auth-submit" id="passwordSubmit" type="submit">Update password</button>
       </form>
 
@@ -705,6 +697,9 @@
     const STORAGE = { sidebar:"homeohelp_sidebar", chats:"homeohelp_chats", legacyHistory:"homeohelp_history" };
     const AUTHORIZED_EMAIL = "karanramnani201@gmail.com";
     const SUBSCRIPTION_URL = ""; // Add your real checkout URL here when ready.
+    // Password-reset emails must always return users to the live HomeoHelp site,
+    // never to localhost or another development machine.
+    const APP_URL = "https://homeohelp.vercel.app";
     let authClient = null;
     let currentUser = null;
     let authConfigured = false;
@@ -858,7 +853,6 @@
       signupSubmit: document.getElementById("signupSubmit"),
       authMessage: document.getElementById("authMessage"),
       forgotPasswordBtn: document.getElementById("forgotPasswordBtn"),
-      changePasswordBtn: document.getElementById("changePasswordBtn"),
       passwordBackdrop: document.getElementById("passwordBackdrop"),
       passwordClose: document.getElementById("passwordClose"),
       passwordForm: document.getElementById("passwordForm"),
@@ -866,6 +860,7 @@
       confirmPassword: document.getElementById("confirmPassword"),
       passwordSubmit: document.getElementById("passwordSubmit"),
       passwordMessage: document.getElementById("passwordMessage"),
+      changePasswordBtn: document.getElementById("changePasswordBtn"),
       accountPanel: document.getElementById("accountPanel"),
       panelAccountName: document.getElementById("panelAccountName"),
       panelAccountEmail: document.getElementById("panelAccountEmail"),
@@ -974,7 +969,7 @@
         authClient.auth.onAuthStateChange((event, session) => {
           setCurrentUser(session?.user || null);
           if (event === "PASSWORD_RECOVERY") {
-            window.setTimeout(() => openPasswordModal("reset"), 100);
+            window.setTimeout(() => openPasswordModal("reset"), 0);
           }
         });
       } catch (error) {
@@ -1034,15 +1029,10 @@
         setAuthMessage("Account service is not configured yet.", "error");
         return;
       }
-
-      document.getElementById("passwordTitle").textContent =
-        mode === "reset" ? "Reset password" : "Change password";
-
-      document.getElementById("passwordSubtitle").textContent =
-        mode === "reset"
-          ? "Choose a new password for your HomeoHelp account."
-          : "Enter your new password below.";
-
+      document.getElementById("passwordTitle").textContent = mode === "reset" ? "Reset password" : "Change password";
+      document.getElementById("passwordSubtitle").textContent = mode === "reset"
+        ? "Choose a new password for your HomeoHelp account."
+        : "Enter your new password below.";
       els.passwordForm.reset();
       setPasswordMessage("");
       openOverlay(els.passwordBackdrop);
@@ -1054,20 +1044,21 @@
         setAuthMessage("Account service is not configured yet.", "error");
         return;
       }
-
       const email = els.loginEmail.value.trim();
       if (!email) {
         setAuthMessage("Enter your email address first.", "error");
         els.loginEmail.focus();
         return;
       }
-
       els.forgotPasswordBtn.disabled = true;
       setAuthMessage("Sending password reset email…");
-
       try {
-        const redirectTo = `${window.location.origin}${window.location.pathname}#reset-password`;
-        const { error } = await authClient.auth.resetPasswordForEmail(email, { redirectTo });
+        // IMPORTANT: use the production URL, not window.location.origin.
+        // This prevents reset emails generated during local development from
+        // pointing users to localhost.
+        const { error } = await authClient.auth.resetPasswordForEmail(email, {
+          redirectTo: APP_URL
+        });
         if (error) throw error;
         setAuthMessage("Password reset email sent. Check your inbox.", "success");
       } catch (error) {
@@ -1079,41 +1070,38 @@
 
     async function handlePasswordUpdate(event) {
       event.preventDefault();
-
       if (!authClient) {
         setPasswordMessage("Account service is not configured yet.", "error");
         return;
       }
-
       const password = els.newPassword.value;
       const confirmation = els.confirmPassword.value;
-
       if (password.length < 8) {
         setPasswordMessage("Password must be at least 8 characters.", "error");
         return;
       }
-
       if (password !== confirmation) {
         setPasswordMessage("The passwords do not match.", "error");
         return;
       }
-
       els.passwordSubmit.disabled = true;
       setPasswordMessage("Updating password…");
-
       try {
         const { error } = await authClient.auth.updateUser({ password });
         if (error) throw error;
-
-        els.passwordForm.reset();
         setPasswordMessage("Password updated successfully!", "success");
-
-        window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
         window.setTimeout(() => closeOverlay(els.passwordBackdrop), 1200);
       } catch (error) {
         setPasswordMessage(error.message || "Unable to update password.", "error");
       } finally {
         els.passwordSubmit.disabled = false;
+      }
+    }
+
+    function handlePasswordRecovery() {
+      const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      if (params.get("type") === "recovery" || params.has("access_token")) {
+        openPasswordModal("reset");
       }
     }
 
@@ -1517,6 +1505,7 @@
     updateAccountUI();
     updateAccessGate();
     initAuth();
+    handlePasswordRecovery();
   </script>
 </body>
 </html>
