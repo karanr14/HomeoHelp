@@ -425,7 +425,7 @@
     .app.sidebar-collapsed .chat-item{justify-content:center;padding-left:0;padding-right:0}
 
     @media(max-width:980px){.app{grid-template-columns:215px minmax(0,1fr)}.hero{padding:28px;grid-template-columns:1fr 250px}.hero h1{font-size:54px}}
-    @media(max-width:760px){body{overflow:auto}.app,.app.sidebar-collapsed{height:auto;min-height:100vh;display:block;padding:12px}.app.sidebar-collapsed .brand-copy,.app.sidebar-collapsed .new-chat,.app.sidebar-collapsed .chat-list-label,.app.sidebar-collapsed .chat-item span:last-child{opacity:1;transform:none;pointer-events:auto}.app.sidebar-collapsed .sidebar-head{justify-content:space-between;padding-left:8px;padding-right:4px}.app.sidebar-collapsed .chat-item{justify-content:flex-start;padding-left:12px;padding-right:12px}.sidebar{position:fixed;left:12px;right:12px;top:12px;height:auto;z-index:15;transform:translateY(calc(-100% - 25px));transition:transform .42s cubic-bezier(.22,1,.36,1);padding:12px;max-height:calc(100vh - 24px);overflow:auto}.sidebar.open{transform:translateY(0)}.mobile-menu{display:grid}.sidebar-head{padding-bottom:12px}.main{min-height:calc(100vh - 24px)}.topbar{padding:0 0 12px 0}.hero{grid-template-columns:1fr;min-height:0;padding:26px 22px}.orb-wrap{min-height:190px;order:-1}.orb{width:155px;height:155px}.orb-core{width:64px;height:64px;font-size:24px}.hero h1{font-size:48px}.messages{max-height:52vh}.bubble{max-width:88%}.bubble.assistant{width:100%;max-width:100%}.settings-panel{top:12px;right:12px;width:calc(100vw - 24px)}}
+    @media(max-width:760px){body{overflow:auto}.app,.app.sidebar-collapsed{height:auto;min-height:100vh;display:block;padding:12px}.app.sidebar-collapsed .brand-copy,.app.sidebar-collapsed .new-chat,.app.sidebar-collapsed .chat-list-label,.app.sidebar-collapsed .chat-item span:last-child{opacity:1;transform:none;pointer-events:auto}.app.sidebar-collapsed .sidebar-head{justify-content:space-between;padding-left:8px;padding-right:4px}.app.sidebar-collapsed .chat-item{justify-content:flex-start;padding-left:12px;padding-right:12px}.sidebar{position:fixed;left:12px;right:12px;top:12px;height:auto;z-index:15;transform:translateY(calc(-100% - 25px));transition:transform .42s cubic-bezier(.22,1,.36,1);padding:12px;max-height:calc(100vh - 24px);overflow:auto}.sidebar.open{transform:translateY(0)}.mobile-menu{display:grid}.sidebar-head{padding-bottom:12px}.main{min-height:calc(100vh - 24px)}.topbar{padding:0 0 12px 0}.hero{grid-template-columns:1fr;min-height:0;padding:26px 22px}.orb-wrap{min-height:190px;order:-1}.orb{width:155px;height:155px}.orb-core{width:64px;height:64px;font-size:24px}.hero h1{font-size:48px}.messages{max-height:52vh}.bubble{max-width:88%}.bubble.assistant{width:100%;max-width:100%}.settings-panel{top:12px;right:12px;width:calc(100vw - 24px)}.content{max-width:100%}}
     @media(max-width:480px){.hero h1{font-size:40px}.hero p{font-size:13px}.status{font-size:10px}.chips{display:grid}.chip{width:100%;text-align:left}}
 
 
@@ -1622,17 +1622,9 @@
       return data;
     }
     function selectAutoModel(text, messages) {
-      const lower = text.toLowerCase();
-      const complexSignals = [
-        "multiple symptoms", "severe", "persistent", "chronic", "recurring",
-        "diagnosis", "diagnose", "differential", "compare", "interaction",
-        "side effect", "medication", "pregnant", "pregnancy", "child", "elderly"
-      ];
-      const isVeryComplex = text.length > 1200 || messages.length >= 12;
-      const isComplex = text.length > 700 || messages.length >= 8 || complexSignals.some(signal => lower.includes(signal));
-      if (isVeryComplex || isComplex) return "openai/gpt-oss-120b";
-      if (text.length > 320 || messages.length >= 4) return "openai/gpt-oss-20b";
-      return "openai/gpt-oss-20b";
+      // HomeoHelp is low-traffic and accuracy matters more than latency here,
+      // so always use the larger model rather than guessing from message length.
+      return "openai/gpt-oss-120b";
     }
 
     async function sendMessage(prefill = "") {

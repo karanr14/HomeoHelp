@@ -82,10 +82,10 @@ function formatRemediesForPrompt(remedies) {
     .join("\n\n---\n\n");
 }
 
-function compactMessages(messages, maxMessages = 5) {
+function compactMessages(messages, maxMessages = 10) {
   return messages.slice(-maxMessages).map(message => ({
     role: message.role,
-    content: String(message.content || "").slice(0, 450)
+    content: String(message.content || "").slice(0, 900)
   }));
 }
 
@@ -108,7 +108,7 @@ async function callGroq(messages, model, maxTokens = 1200) {
         model,
         messages,
         max_completion_tokens: maxTokens,
-        reasoning_effort: "low",
+        reasoning_effort: "medium",
         include_reasoning: false
       }
     : { model, temperature: 0.55, max_tokens: maxTokens, messages };
@@ -196,7 +196,7 @@ module.exports = async function handler(req, res) {
       ...compactMessages(messages)
     ];
 
-    const phase1Reply = await callGroq(phase1Messages, selectedModel, 900);
+    const phase1Reply = await callGroq(phase1Messages, selectedModel, 1500);
 
     // ── Check if LLM wants to move to remedy ranking ──
     const readyKeywords = parseReadySignal(phase1Reply);
@@ -219,7 +219,7 @@ module.exports = async function handler(req, res) {
       }
     ];
 
-    const phase2Reply = await callGroq(phase2Messages, selectedModel, 2200);
+    const phase2Reply = await callGroq(phase2Messages, selectedModel, 3200);
 
     return res.status(200).json({
       reply: phase2Reply,
