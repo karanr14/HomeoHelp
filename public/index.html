@@ -305,6 +305,39 @@
     .send:active{transform:translateY(1px) scale(.95);box-shadow:0 3px 12px rgba(45,212,167,.18)}
     .send:disabled{opacity:.5;cursor:wait;transform:none}
     .caption{font-size:11px;color:#65756f;padding:9px 4px 0}
+
+    /* ── New-chat nudge banner ── */
+    .nudge-bar{
+      display:flex;align-items:center;gap:10px;
+      padding:9px 13px;margin-bottom:6px;
+      border-radius:11px;
+      background:rgba(45,212,167,0.08);
+      border:1px solid rgba(45,212,167,0.18);
+      font-size:12px;color:#8ecfba;
+      opacity:0;transform:translateY(6px);
+      transition:opacity .25s ease,transform .25s ease;
+      pointer-events:none;
+    }
+    .nudge-bar.visible{opacity:1;transform:translateY(0);pointer-events:auto;}
+    .nudge-bar svg{flex-shrink:0;opacity:.75}
+    .nudge-bar strong{color:#2dd4a7;font-weight:600}
+
+    /* ── List-mode toggle button ── */
+    .composer-toolbar{
+      display:flex;align-items:center;gap:6px;
+      padding:0 2px 6px;position:relative;z-index:3;
+    }
+    .toolbar-btn{
+      display:flex;align-items:center;gap:5px;
+      padding:4px 9px;border-radius:8px;border:1px solid rgba(255,255,255,0.10);
+      background:rgba(255,255,255,0.05);
+      color:#8aa89f;font-size:11px;font-weight:500;
+      cursor:pointer;transition:background .15s,color .15s,border-color .15s;
+      user-select:none;
+    }
+    .toolbar-btn:hover{background:rgba(255,255,255,0.09);color:var(--text);}
+    .toolbar-btn.active{background:rgba(45,212,167,0.12);border-color:rgba(45,212,167,0.3);color:#2dd4a7;}
+    .toolbar-btn svg{opacity:.8;}
     .typing{display:inline-flex;gap:5px;align-items:center;height:18px}
     .typing span{width:5px;height:5px;border-radius:50%;background:#7fa79b;animation:typing 1.15s infinite ease-in-out}
     .typing span:nth-child(2){animation-delay:.14s}.typing span:nth-child(3){animation-delay:.28s}
@@ -808,16 +841,28 @@
           <div class="messages" id="messages" aria-live="polite"></div>
           <div class="error-inline" id="inlineError"></div>
 
+          <!-- nudge bar — shown when AI has asked a question and user opens a new chat -->
+          <div class="nudge-bar" id="nudgeBar" role="alert" aria-live="polite">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6.5" stroke="#2dd4a7" stroke-width="1.3"/><path d="M7.5 4.5v3.5l2 1.5" stroke="#2dd4a7" stroke-width="1.3" stroke-linecap="round"/></svg>
+            <span>Continue in <strong>this chat</strong> — reply to the AI's question here, not in a new chat.</span>
+          </div>
+
           <!-- ══ COMPOSER — its own liquid glass (nested) ══ -->
           <div class="composer">
             <div class="composer-bend"></div>
             <div class="composer-tint"></div>
             <div class="composer-face"></div>
             <div class="composer-edge"></div>
+            <div class="composer-toolbar" id="composerToolbar">
+              <button class="toolbar-btn" id="listModeBtn" type="button" title="Numbered list mode — Shift+Enter adds next item">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 2h1.5M1 6h1.5M1 10h1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 2h7M5 6h7M5 10h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                Numbered list
+              </button>
+            </div>
             <textarea id="promptInput" rows="1" placeholder="Describe how you're feeling..." aria-label="Message"></textarea>
             <button class="send" id="sendBtn" type="button" aria-label="Send">↑</button>
           </div>
-          <div class="caption">Press Enter to send · Shift+Enter for new line</div>
+          <div class="caption" id="inputCaption">Press Enter to send · Shift+Enter for new line</div>
         </section>
 
         <div class="footer">HomeoHelp provides educational information only and does not replace professional medical advice. Always consult a qualified healthcare professional.</div>
@@ -1102,6 +1147,9 @@
       panelAccountEmail: document.getElementById("panelAccountEmail"),
       panelAccountStatus: document.getElementById("panelAccountStatus"),
       logoutBtn: document.getElementById("logoutBtn"),
+      nudgeBar:  document.getElementById("nudgeBar"),
+      listModeBtn: document.getElementById("listModeBtn"),
+      inputCaption: document.getElementById("inputCaption"),
     };
     function persist() {
       const activeChat = state.chats.find(chat => chat.id === state.activeChatId);
@@ -1949,10 +1997,86 @@
     window.addEventListener("scroll", () => closeChatMenus(), true);
     window.addEventListener("resize", () => closeChatMenus());
     els.send.addEventListener("click", () => sendMessage());
+    // ── List mode state ──────────────────────────────────────────────────────
+    let listMode = false;
+    let listCounter = 1;
+
+    function setListMode(on) {
+      listMode = on;
+      listCounter = 1;
+      els.listModeBtn.classList.toggle("active", on);
+      els.inputCaption.textContent = on
+        ? "Shift+Enter → next item · Enter → send list · Click ✕ to exit list mode"
+        : "Press Enter to send · Shift+Enter for new line";
+      if (on) {
+        // Seed the first item if input is empty
+        if (!els.input.value.trim()) {
+          els.input.value = "1. ";
+          autosize();
+          els.input.setSelectionRange(els.input.value.length, els.input.value.length);
+        }
+      }
+      els.input.focus();
+    }
+
+    els.listModeBtn.addEventListener("click", () => setListMode(!listMode));
+
     els.input.addEventListener("input", () => { autosize(); updateTypingLayout(); });
-    els.input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
-    els.newChatBtn.addEventListener("click", startNewChat);
-    els.homeBtn.addEventListener("click", startNewChat);
+
+    els.input.addEventListener("keydown", e => {
+      if (listMode && e.key === "Enter" && e.shiftKey) {
+        // Shift+Enter in list mode → add next numbered item
+        e.preventDefault();
+        listCounter++;
+        const cur = els.input.value;
+        // Trim trailing space on current line if blank after number
+        els.input.value = cur.trimEnd() + "\n" + listCounter + ". ";
+        autosize();
+        els.input.setSelectionRange(els.input.value.length, els.input.value.length);
+        return;
+      }
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+        if (listMode) { listMode = false; listCounter = 1; els.listModeBtn.classList.remove("active"); els.inputCaption.textContent = "Press Enter to send · Shift+Enter for new line"; }
+        return;
+      }
+      if (e.key === "Escape" && listMode) {
+        setListMode(false);
+      }
+    });
+
+    // ── Nudge bar: show when AI asked a question and user starts a new chat ─
+    function lastMessageHasQuestion() {
+      const msgs = state.messages;
+      if (!msgs.length) return false;
+      const last = msgs[msgs.length - 1];
+      if (last.role !== "assistant") return false;
+      return /\?/.test(last.content); // AI ended with a question
+    }
+
+    const _origStartNewChat = startNewChat;
+    // Wrap startNewChat to show nudge if AI had a pending question
+    function startNewChatWithNudge() {
+      const hadQuestion = lastMessageHasQuestion();
+      _origStartNewChat();
+      if (hadQuestion) {
+        els.nudgeBar.classList.add("visible");
+        // Auto-hide after 7 seconds
+        clearTimeout(startNewChatWithNudge._timer);
+        startNewChatWithNudge._timer = setTimeout(() => {
+          els.nudgeBar.classList.remove("visible");
+        }, 7000);
+      } else {
+        els.nudgeBar.classList.remove("visible");
+      }
+    }
+    // Hide nudge when user starts typing in the new chat
+    els.input.addEventListener("input", () => {
+      if (els.input.value.trim()) els.nudgeBar.classList.remove("visible");
+    });
+    els.newChatBtn.addEventListener("click", startNewChatWithNudge);
+    els.homeBtn.addEventListener("click", startNewChatWithNudge);
     els.sidebarToggle.addEventListener("click", toggleMobileSidebar);
     els.desktopSidebarToggle.addEventListener("click", () => {
       if (window.matchMedia("(max-width: 760px)").matches) toggleMobileSidebar();
