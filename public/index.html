@@ -261,8 +261,27 @@
       border-radius:17px;
       overflow: hidden;
       isolation: isolate;
-      padding:8px 9px 8px 13px;
-      display:grid;grid-template-columns:minmax(0,1fr) 46px;gap:8px;align-items:end;
+      padding:6px 9px 8px 13px;
+      display:flex;
+      flex-direction:column;
+      gap:0;
+    }
+    .composer-toolbar{
+      display:flex;align-items:center;gap:6px;
+      padding:4px 0 4px;
+      position:relative;z-index:3;
+    }
+    .composer-row{
+      display:flex;align-items:flex-end;gap:8px;
+      position:relative;z-index:3;
+    }
+    .composer textarea{
+      flex:1;min-width:0;
+      resize:none;outline:0;background:transparent;border:0;color:var(--text);min-height:40px;max-height:120px;padding:10px 0;font-size:15px;
+    }
+    .send{
+      flex-shrink:0;
+      width:46px;height:46px;border-radius:14px;border:1px solid rgba(114,246,205,.25);background:linear-gradient(145deg,var(--accent-2),var(--accent));color:#062117;display:grid;place-items:center;font-size:18px;font-weight:900;box-shadow:0 8px 28px rgba(45,212,167,.14),0 1px 0 rgba(255,255,255,.22) inset;transition:.18s ease;
     }
     .composer-bend {
       position:absolute;inset:0;border-radius:inherit;
@@ -297,10 +316,9 @@
     .composer > *:not(.composer-bend):not(.composer-face):not(.composer-edge):not(.composer-tint){
       position:relative;z-index:3;
     }
-    .composer textarea{resize:none;outline:0;background:transparent;border:0;color:var(--text);min-height:40px;max-height:120px;padding:10px 0;font-size:15px}
+    .composer-row > * { position:relative;z-index:3; }
     .composer textarea::placeholder{color:#71827c}
 
-    .send{width:46px;height:46px;border-radius:14px;border:1px solid rgba(114,246,205,.25);background:linear-gradient(145deg,var(--accent-2),var(--accent));color:#062117;display:grid;place-items:center;font-size:18px;font-weight:900;box-shadow:0 8px 28px rgba(45,212,167,.14),0 1px 0 rgba(255,255,255,.22) inset;transition:.18s ease}
     .send:hover{transform:translateY(-1px);box-shadow:0 10px 32px rgba(45,212,167,.26)}
     .send:active{transform:translateY(1px) scale(.95);box-shadow:0 3px 12px rgba(45,212,167,.18)}
     .send:disabled{opacity:.5;cursor:wait;transform:none}
@@ -323,10 +341,6 @@
     .nudge-bar strong{color:#2dd4a7;font-weight:600}
 
     /* ── List-mode toggle button ── */
-    .composer-toolbar{
-      display:flex;align-items:center;gap:6px;
-      padding:0 2px 6px;position:relative;z-index:3;
-    }
     .toolbar-btn{
       display:flex;align-items:center;gap:5px;
       padding:4px 9px;border-radius:8px;border:1px solid rgba(255,255,255,0.10);
@@ -859,8 +873,10 @@
                 Numbered list
               </button>
             </div>
-            <textarea id="promptInput" rows="1" placeholder="Describe how you're feeling..." aria-label="Message"></textarea>
-            <button class="send" id="sendBtn" type="button" aria-label="Send">↑</button>
+            <div class="composer-row">
+              <textarea id="promptInput" rows="1" placeholder="Describe how you're feeling..." aria-label="Message"></textarea>
+              <button class="send" id="sendBtn" type="button" aria-label="Send">↑</button>
+            </div>
           </div>
           <div class="caption" id="inputCaption">Press Enter to send · Shift+Enter for new line</div>
         </section>
