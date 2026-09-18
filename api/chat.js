@@ -35,16 +35,22 @@ const AUTHORIZED_EMAILS = [
 
 
 const CHAT_MODELS = new Set([
-  // Groq via OpenAI-compat (verified working)
+  "openai/gpt-oss-120b",
   "openai/gpt-oss-20b",
-  // Llama 4 on Groq
   "meta-llama/llama-4-maverick-17b-128e-instruct",
   "meta-llama/llama-4-scout-17b-16e-instruct",
-  // Other Groq models
   "moonshotai/kimi-k2-instruct",
-  "qwen-qwq-32b",
   "llama-3.3-70b-versatile",
 ]);
+
+// Fallback chain — tried in order until one succeeds
+const MODEL_FALLBACK_CHAIN = [
+  "openai/gpt-oss-120b",
+  "openai/gpt-oss-20b",
+  "meta-llama/llama-4-maverick-17b-128e-instruct",
+  "meta-llama/llama-4-scout-17b-16e-instruct",
+  "llama-3.3-70b-versatile",
+];
 
 
 // ─── Load remedy database once (cold-start cache) ───────────────────────────
@@ -128,57 +134,46 @@ function parseReadySignal(text) {
 }
 
 
-// ─── Call Groq ────────────────────────────────────────────────────────────────
+// ─── Call a single Groq model ─────────────────────────────────────────────────
 async function callGroq(messages, model, maxTokens = 1200) {
   const apiKey = process.env.GROQ_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("GROQ_API_KEY is not configured on the server.");
-  }
+  if (!apiKey) throw new Error("GROQ_API_KEY is not configured on the server.");
 
   const isGptOss = model.startsWith("openai/gpt-oss-");
-
   const requestBody = isGptOss
-    ? {
-        model,
-        messages,
-        max_completion_tokens: maxTokens,
-        reasoning_effort: "medium",
-        include_reasoning: false
-      }
-    : {
-        model,
-        temperature: 0.55,
-        max_tokens: maxTokens,
-        messages
-      };
+    ? { model, messages, max_completion_tokens: maxTokens, reasoning_effort: "medium", include_reasoning: false }
+    : { model, temperature: 0.55, max_tokens: maxTokens, messages };
 
-  const res = await fetch(
-    "https://api.groq.com/openai/v1/chat/completions",
-    {
-      method: "POST",
-
-      headers: {
-        "Authorization": "Bearer " + apiKey,
-        "Content-Type": "application/json"
-      },
-
-      body: JSON.stringify(requestBody)
-    }
-  );
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify(requestBody)
+  });
 
   const data = await res.json().catch(() => ({}));
-
   if (!res.ok) {
-    const msg =
-      data?.error?.message ||
-      data?.error?.code ||
-      `Groq error ${res.status} — model: ${model}`;
-
+    const msg = data?.error?.message || data?.error?.code || `Groq error ${res.status}`;
     throw new Error(msg);
   }
-
   return data?.choices?.[0]?.message?.content?.trim() || "";
+}
+
+// ─── Call with automatic fallback chain ───────────────────────────────────────
+async function callGroqWithFallback(messages, maxTokens = 1200) {
+  let lastError;
+  for (const model of MODEL_FALLBACK_CHAIN) {
+    try {
+      console.log(`[HomeoHelp] Trying model: ${model}`);
+      const result = await callGroq(messages, model, maxTokens);
+      return result;
+    } catch (err) {
+      console.warn(`[HomeoHelp] Model ${model} failed: ${err.message}`);
+      lastError = err;
+      // Continue to next model
+    }
+  }
+  // All models exhausted
+  throw new Error("ALL_MODELS_FAILED");
 }
 
 
@@ -290,124 +285,59 @@ module.exports = async function handler(req, res) {
 
   const {
     messages = [],
-    model = "meta-llama/llama-4-maverick-17b-128e-instruct"
   } = body;
 
-
-  const selectedModel =
-    CHAT_MODELS.has(model)
-      ? model
-      : "meta-llama/llama-4-maverick-17b-128e-instruct";
-
-
   if (!Array.isArray(messages) || messages.length === 0) {
-    return res.status(400).json({
-      error: "messages array is required"
-    });
+    return res.status(400).json({ error: "messages array is required" });
   }
-
 
   try {
 
     // ── PHASE 1: symptom gathering ──
     const phase1Messages = [
-      {
-        role: "system",
-        content: SYSTEM_PHASE1
-      },
-
+      { role: "system", content: SYSTEM_PHASE1 },
       ...compactMessages(messages)
     ];
 
-
-    const phase1Reply =
-      await callGroq(
-        phase1Messages,
-        selectedModel,
-        1500
-      );
-
+    const phase1Reply = await callGroqWithFallback(phase1Messages, 1500);
 
     // ── Check if LLM wants to move to remedy ranking ──
-    const readyKeywords =
-      parseReadySignal(phase1Reply);
-
+    const readyKeywords = parseReadySignal(phase1Reply);
 
     if (!readyKeywords) {
-
-      return res.status(200).json({
-        reply: phase1Reply,
-        phase: "questioning"
-      });
+      return res.status(200).json({ reply: phase1Reply, phase: "questioning" });
     }
 
-
     // ── PHASE 2: search remedy database ──
-    const matched =
-      searchRemedies(
-        readyKeywords,
-        6
-      );
-
-
-    const remedyBlock =
-      formatRemediesForPrompt(matched);
-
+    const matched      = searchRemedies(readyKeywords, 6);
+    const remedyBlock  = formatRemediesForPrompt(matched);
 
     const phase2Messages = [
-
-      {
-        role: "system",
-        content: SYSTEM_PHASE2
-      },
-
+      { role: "system", content: SYSTEM_PHASE2 },
       ...compactMessages(messages),
-
       {
         role: "user",
-        content:
-          `Based on our conversation, here are the relevant remedy profiles from the SBL database:
-
-${remedyBlock}
-
-Please now summarize the symptoms and rank the matching remedies as instructed.`
+        content: `Based on our conversation, here are the relevant remedy profiles from the SBL database:\n\n${remedyBlock}\n\nPlease now summarize the symptoms and rank the matching remedies as instructed.`
       }
-
     ];
 
-
-    const phase2Reply =
-      await callGroq(
-        phase2Messages,
-        selectedModel,
-        3200
-      );
-
+    const phase2Reply = await callGroqWithFallback(phase2Messages, 3200);
 
     return res.status(200).json({
-
       reply: phase2Reply,
-
       phase: "remedies",
-
       matchedCount: matched.length,
-
       keywords: readyKeywords
-
     });
-
 
   } catch (err) {
+    console.error("HomeoHelp API error:", err.message);
 
-    console.error(
-      "HomeoHelp API error:",
-      err.message
-    );
+    // Friendly message when all models failed
+    const friendlyError = err.message === "ALL_MODELS_FAILED"
+      ? "An error occurred, please try again later. Don't worry, your chats are saved."
+      : (err.message || "An error occurred, please try again later. Don't worry, your chats are saved.");
 
-    return res.status(500).json({
-      error:
-        err.message ||
-        "Internal server error"
-    });
+    return res.status(500).json({ error: friendlyError });
   }
 };
