@@ -1764,7 +1764,7 @@
       button.title = "Copied";
       window.setTimeout(() => { button.classList.remove("copied"); button.title = "Copy message"; }, 1300);
     }
-    function renderMessages() {
+    function renderMessages({ scrollToLatestAssistant = false } = {}) {
       renderChatList();
       els.messages.innerHTML = "";
       state.messages.forEach(m => {
@@ -1792,14 +1792,41 @@
       els.content.classList.toggle("home-active", !has);
       els.content.classList.toggle("chat-active", has);
       els.main.classList.toggle("workspace-active", has || Boolean(els.input.value.trim()));
-      els.messages.scrollTop = els.messages.scrollHeight;
+
+      if (scrollToLatestAssistant) {
+        // Scroll so the first assistant bubble after the last user message is at the top
+        const rows = els.messages.querySelectorAll(".msg-row");
+        let targetRow = null;
+        for (let i = rows.length - 1; i >= 0; i--) {
+          if (rows[i].classList.contains("assistant")) { targetRow = rows[i]; break; }
+        }
+        if (targetRow) {
+          // Small rAF delay so layout is painted before we measure
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              const containerTop = els.messages.getBoundingClientRect().top;
+              const rowTop = targetRow.getBoundingClientRect().top;
+              els.messages.scrollTop += (rowTop - containerTop) - 12; // 12px breathing room
+            });
+          });
+        }
+      } else {
+        els.messages.scrollTop = els.messages.scrollHeight;
+      }
     }
     function renderTyping() {
       const row = document.createElement("div"); row.className = "msg-row assistant"; row.id = "typingRow";
       const b = document.createElement("div"); b.className = "bubble assistant";
       b.innerHTML = '<span class="typing"><span></span><span></span><span></span></span>';
       row.appendChild(b); els.messages.appendChild(row);
-      els.messages.scrollTop = els.messages.scrollHeight;
+      // Scroll to show typing indicator at top (user prompt scrolls off)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const containerTop = els.messages.getBoundingClientRect().top;
+          const rowTop = row.getBoundingClientRect().top;
+          els.messages.scrollTop += (rowTop - containerTop) - 12;
+        });
+      });
     }
     function removeTyping() { document.getElementById("typingRow")?.remove(); }
     async function callBackend(messages, model) {
@@ -1837,7 +1864,7 @@
         const { reply, phase } = await callBackend(payload, autoModel);
         removeTyping();
         state.messages.push({ role:"assistant", content:reply, phase });
-        persist(); renderMessages();
+        persist(); renderMessages({ scrollToLatestAssistant: true });
       } catch(err) {
         removeTyping();
         showError(err?.message || "Something went wrong. Please try again.");
