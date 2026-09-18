@@ -198,41 +198,6 @@
       align-items:center;gap:20px;
     }
     .hero-copy{position:relative;z-index:7;grid-column:1 / -1;width:100%;text-align:center;transform:translateY(-12px)}
-    .hero .orb-wrap{position:absolute;right:4%;top:50%;width:280px;min-height:0;transform:translateY(-50%);opacity:.42;pointer-events:none}
-    .hero-copy .chips{justify-content:center}
-    .hero-copy h1.home-title .home-letter{display:inline-block;opacity:0;filter:blur(8px);transform:translateY(10px) scale(.86);animation:letter-arrive .9s cubic-bezier(.22,1,.36,1) forwards;animation-delay:calc(var(--letter-index) * 35ms)}
-    @keyframes letter-arrive{55%{opacity:.7;filter:blur(2px);transform:translateY(-2px) scale(1.04)}100%{opacity:1;filter:blur(0);transform:translateY(0) scale(1)}}
-    .home-particles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:6}
-    .home-particle{position:absolute;top:-12px;width:var(--size);height:var(--size);border-radius:50%;background:#c4ffe9;box-shadow:0 0 10px #c4ffe9,0 0 24px rgba(45,212,167,1);mix-blend-mode:screen;opacity:0;will-change:transform,opacity}
-    .home-particles.active .home-particle{animation:particle-fall var(--duration) var(--delay) ease-in forwards}
-    @keyframes particle-fall{0%{opacity:1;transform:translate3d(0,-12px,0) scale(.45)}72%{opacity:1}100%{opacity:0;transform:translate3d(var(--drift),var(--fall-distance),0) scale(.9)}}
-    .hero.hidden{display:none}
-    .badge{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(45,212,167,.22);background:rgba(45,212,167,.07);color:#9fe9d5;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.12em;padding:7px 10px;width:max-content}
-    .hero h1{font-size:clamp(42px,5vw,70px);line-height:.96;letter-spacing:-.055em;max-width:720px;margin:.5em auto .4em}
-    .accent{color:var(--accent)}
-    .hero p{color:var(--muted);max-width:620px;font-size:15px;line-height:1.65;margin:0}
-    .quick-label{margin-top:28px;margin-bottom:11px;font-size:10px;letter-spacing:.15em;color:#71827c;font-weight:700}
-    .chips{display:flex;flex-wrap:wrap;gap:9px}
-    .chip{
-      border:1px solid rgba(255,255,255,.14);border-radius:999px;
-      background:rgba(255,255,255,.06);
-      color:#bfcec9;padding:10px 14px;font-size:12px;transition:.2s ease;
-      box-shadow:0 1px 0 rgba(255,255,255,.10) inset;
-    }
-    .chip:hover{background:rgba(45,212,167,.10);color:var(--text);border-color:rgba(45,212,167,.28);box-shadow:0 0 22px rgba(45,212,167,.08),0 1px 0 rgba(255,255,255,.14) inset}
-    .orb-wrap{display:grid;place-items:center;min-height:290px;position:relative}
-    .orb{position:relative;width:210px;height:210px;border-radius:50%;display:grid;place-items:center;animation:breathe 4.8s ease-in-out infinite}
-    @keyframes breathe{0%,100%{transform:scale(.97)}50%{transform:scale(1.03)}}
-    .orb::before,.orb::after{content:"";position:absolute;border-radius:50%;border:1px solid rgba(45,212,167,.18)}
-    .orb::before{inset:0;box-shadow:0 0 80px rgba(45,212,167,.10),inset 0 0 60px rgba(45,212,167,.04)}
-    .orb::after{inset:22px;border-color:rgba(45,212,167,.28);box-shadow:0 0 38px rgba(45,212,167,.14)}
-    .ring{position:absolute;border-radius:50%;border:1px solid rgba(114,246,205,.14);transform:rotate(12deg)}
-    .ring.r1{inset:44px}.ring.r2{inset:66px;border-style:dashed;animation:spin 12s linear infinite}
-    @keyframes spin{to{transform:rotate(372deg)}}
-    .orb-core{width:86px;height:86px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 28%,rgba(114,246,205,.48),rgba(45,212,167,.16) 45%,rgba(7,20,16,.85) 70%);border:1px solid rgba(114,246,205,.32);box-shadow:0 0 65px rgba(45,212,167,.24),inset 0 0 25px rgba(114,246,205,.14);font-size:31px;font-weight:900;color:#d9fff4}
-    .float-dot{position:absolute;border-radius:50%;background:rgba(114,246,205,.75);box-shadow:0 0 14px rgba(45,212,167,.75)}
-    .d1{width:6px;height:6px;top:10%;right:23%}.d2{width:4px;height:4px;bottom:15%;left:17%}.d3{width:5px;height:5px;top:42%;left:4%}
-
     /* ── Chat shell ── */
     .chat-shell{margin-top:14px;border-radius:var(--radius-lg);padding:14px;min-height:118px;display:flex;flex-direction:column}
     .messages{flex:1;min-height:0;overflow:auto;padding:10px 10px 18px;display:flex;flex-direction:column;gap:14px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
@@ -398,25 +363,6 @@
     .field{margin-bottom:14px}
     .field label{display:block;font-size:10px;letter-spacing:.08em;color:#81928c;margin:0 0 7px}
     .field select{width:100%;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--text);padding:0 12px;outline:0}
-
-    /* ── Font Size Slider (Glassmorphism) ── */
-    .font-size-setting{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
-    .font-size-label{font-size:14px;font-weight:600;color:var(--text);display:flex;justify-content:space-between;align-items:center}
-    .font-size-value{font-size:12px;color:var(--muted);font-weight:500}
-    .slider-container-glass{position:relative;width:100%;height:10px;background:#1a1f1d;border-radius:999px;cursor:pointer}
-    .slider-progress-glass{position:absolute;height:100%;background:linear-gradient(117deg, #2dd4a7 0%, #72f6cd 100%);border-radius:999px;width:0%;z-index:1;transition:width 0.1s ease}
-    .slider-thumb-glass{position:absolute;top:50%;transform:translate(-50%, -50%);width:65px;height:42px;border-radius:999px;cursor:pointer;z-index:2;background-color:#1a2420;box-shadow:0 1px 8px 0 rgba(0, 0, 0, 0.3), 0 0 2px 0 rgba(45, 212, 167, 0.2);overflow:hidden;transition:transform 0.15s ease, height 0.15s ease}
-    .slider-thumb-glass-filter{position:absolute;inset:0;z-index:0;backdrop-filter:blur(0.6px);-webkit-backdrop-filter:blur(0.6px);filter:url(#mini-liquid-lens)}
-    .slider-thumb-glass-overlay{position:absolute;inset:0;z-index:1;background-color:rgba(45, 212, 167, 0.08)}
-    .slider-thumb-glass-specular{position:absolute;inset:0;z-index:2;border-radius:inherit;box-shadow:inset 1px 1px 0 rgba(255, 255, 255, 0.15), inset 1px 3px 0 rgba(45, 212, 167, 0.12), inset 0 0 22px rgb(45, 212, 167 / 20%), inset -1px -1px 0 rgba(45, 212, 167, 0.08)}
-    .slider-thumb-glass-filter,
-    .slider-thumb-glass-overlay,
-    .slider-thumb-glass-specular{opacity:0;transition:opacity 0.15s ease}
-    .slider-thumb-glass.active{background-color:transparent;box-shadow:0 1px 12px rgba(45, 212, 167, 0.4)}
-    .slider-thumb-glass.active .slider-thumb-glass-filter,
-    .slider-thumb-glass.active .slider-thumb-glass-overlay,
-    .slider-thumb-glass.active .slider-thumb-glass-specular{opacity:1}
-    .slider-thumb-glass:active{transform:translate(-50%, -50%) scaleY(0.98) scaleX(1.1)}
     .field select:focus{border-color:rgba(45,212,167,.3);box-shadow:0 0 0 3px rgba(45,212,167,.06)}
     .btn{border:1px solid rgba(255,255,255,.12);padding:10px 13px;border-radius:11px;background:rgba(255,255,255,.05);color:#c3d0cc;transition:.18s ease}
     .btn:hover{border-color:rgba(45,212,167,.25);background:rgba(45,212,167,.08);color:var(--text)}
@@ -443,9 +389,87 @@
     .app.sidebar-collapsed .chat-list{display:none}
     .app.sidebar-collapsed .chat-item{justify-content:center;padding-left:0;padding-right:0}
 
-    @media(max-width:980px){.app{grid-template-columns:215px minmax(0,1fr)}.hero{padding:28px;grid-template-columns:1fr 250px}.hero h1{font-size:54px}}
-    @media(max-width:760px){body{overflow:auto}.app,.app.sidebar-collapsed{height:auto;min-height:100vh;display:block;padding:12px}.app.sidebar-collapsed .brand-copy,.app.sidebar-collapsed .new-chat,.app.sidebar-collapsed .chat-list-label,.app.sidebar-collapsed .chat-item span:last-child{opacity:1;transform:none;pointer-events:auto}.app.sidebar-collapsed .sidebar-head{justify-content:space-between;padding-left:8px;padding-right:4px}.app.sidebar-collapsed .chat-item{justify-content:flex-start;padding-left:12px;padding-right:12px}.sidebar{position:fixed;left:12px;right:12px;top:12px;height:auto;z-index:15;transform:translateY(calc(-100% - 25px));transition:transform .42s cubic-bezier(.22,1,.36,1);padding:12px;max-height:calc(100vh - 24px);overflow:auto}.sidebar.open{transform:translateY(0)}.mobile-menu{display:grid}.sidebar-head{padding-bottom:12px}.main{min-height:calc(100vh - 24px)}.topbar{padding:0 0 12px 0}.hero{grid-template-columns:1fr;min-height:0;padding:26px 22px}.orb-wrap{min-height:190px;order:-1}.orb{width:155px;height:155px}.orb-core{width:64px;height:64px;font-size:24px}.hero h1{font-size:48px}.messages{max-height:52vh}.bubble{max-width:88%}.bubble.assistant{width:100%;max-width:100%}.settings-panel{top:12px;right:12px;width:calc(100vw - 24px)}.content{max-width:100%}}
-    @media(max-width:480px){.hero h1{font-size:40px}.hero p{font-size:13px}.status{font-size:10px}.chips{display:grid}.chip{width:100%;text-align:left}}
+    /* ── Hero typography & chips ── */
+    .home-title{
+      margin:0 0 18px;
+      font-size:72px;font-weight:800;line-height:1.08;letter-spacing:-.04em;
+      color:#fff;
+    }
+    .home-title .accent{color:var(--accent)}
+    .home-letter{
+      display:inline-block;
+      opacity:0;transform:translateY(22px) scale(.88);
+      animation:letter-in .6s cubic-bezier(.22,1,.36,1) forwards;
+      animation-delay:calc(var(--letter-index) * 28ms);
+    }
+    @keyframes letter-in{to{opacity:1;transform:translateY(0) scale(1)}}
+    .quick-label{
+      font-size:11px;letter-spacing:.16em;color:rgba(255,255,255,.38);
+      margin-bottom:14px;font-weight:600;
+    }
+    .chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+    .chip{
+      border:1px solid rgba(255,255,255,.22);
+      border-radius:999px;padding:10px 18px;
+      background:rgba(255,255,255,.08);
+      color:rgba(255,255,255,.82);font-size:14px;font-weight:500;
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      transition:.18s ease;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.18);
+    }
+    .chip:hover{background:rgba(255,255,255,.14);border-color:rgba(45,212,167,.5);color:#fff;transform:translateY(-1px)}
+
+    /* ── Home particles ── */
+    .home-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit;z-index:6}
+    .home-particle{
+      position:absolute;bottom:-12px;
+      width:var(--size,8px);height:var(--size,8px);
+      border-radius:50%;
+      background:radial-gradient(circle at 35% 35%,rgba(255,255,255,.9),rgba(45,212,167,.55) 60%,transparent);
+      opacity:0;
+    }
+    .home-particles.active .home-particle{
+      animation:particle-rise var(--duration,6s) var(--delay,0s) ease-in-out forwards;
+    }
+    @keyframes particle-rise{
+      0%{opacity:0;transform:translateY(0) translateX(0) scale(1)}
+      12%{opacity:.65}
+      85%{opacity:.18}
+      100%{opacity:0;transform:translateY(calc(-1 * var(--fall-distance,350px))) translateX(var(--drift,0px)) scale(.6)}
+    }
+
+    /* ── Model selector pill (in composer) ── */
+    .model-selector-wrap{
+      display:flex;align-items:center;gap:7px;
+      padding:5px 6px 5px 10px;
+      position:relative;z-index:3;
+    }
+    .model-selector-label{
+      font-size:10px;letter-spacing:.08em;color:rgba(255,255,255,.3);
+      white-space:nowrap;font-weight:600;flex-shrink:0;
+    }
+    .model-selector{
+      border:1px solid rgba(255,255,255,.13);
+      border-radius:10px;
+      background:rgba(255,255,255,.06);
+      color:rgba(255,255,255,.72);
+      font-size:12px;font-weight:500;
+      padding:5px 28px 5px 10px;
+      outline:none;
+      cursor:pointer;
+      appearance:none;-webkit-appearance:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.4)' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat:no-repeat;
+      background-position:right 8px center;
+      transition:.18s ease;
+      max-width:200px;
+    }
+    .model-selector:focus{border-color:rgba(45,212,167,.4);box-shadow:0 0 0 2px rgba(45,212,167,.08);color:#fff}
+    .model-selector option{background:#0d1a14;color:#eef7f3}
+
+    @media(max-width:980px){.app{grid-template-columns:215px minmax(0,1fr)}.hero{padding:28px;grid-template-columns:1fr 250px}.home-title{font-size:54px}}
+    @media(max-width:760px){body{overflow:auto}.app,.app.sidebar-collapsed{height:auto;min-height:100vh;display:block;padding:12px}.app.sidebar-collapsed .brand-copy,.app.sidebar-collapsed .new-chat,.app.sidebar-collapsed .chat-list-label,.app.sidebar-collapsed .chat-item span:last-child{opacity:1;transform:none;pointer-events:auto}.app.sidebar-collapsed .sidebar-head{justify-content:space-between;padding-left:8px;padding-right:4px}.app.sidebar-collapsed .chat-item{justify-content:flex-start;padding-left:12px;padding-right:12px}.sidebar{position:fixed;left:12px;right:12px;top:12px;height:auto;z-index:15;transform:translateY(calc(-100% - 25px));transition:transform .42s cubic-bezier(.22,1,.36,1);padding:12px;max-height:calc(100vh - 24px);overflow:auto}.sidebar.open{transform:translateY(0)}.mobile-menu{display:grid}.sidebar-head{padding-bottom:12px}.main{min-height:calc(100vh - 24px)}.topbar{padding:0 0 12px 0}.hero{grid-template-columns:1fr;min-height:0;padding:26px 22px}.home-title{font-size:48px}.messages{max-height:52vh}.bubble{max-width:88%}.bubble.assistant{width:100%;max-width:100%}.settings-panel{top:12px;right:12px;width:calc(100vw - 24px)}.content{max-width:100%}}
+    @media(max-width:480px){.home-title{font-size:40px}.hero p{font-size:13px}.status{font-size:10px}.chips{display:grid}.chip{width:100%;text-align:left}.model-selector-label{display:none}}
 
 
     /* ── Subscription access gate ── */
@@ -640,24 +664,6 @@
 </head>
 <body>
 
-  <!-- SVG Filters -->
-  <svg width="0" height="0">
-    <filter id="mini-liquid-lens" x="-50%" y="-50%" width="200%" height="200%">
-      <feImage x="0" y="0" result="normalMap" xlink:href="data:image/svg+xml;utf8,
-      <svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'>
-        <radialGradient id='invmap' cx='50%' cy='50%' r='75%'>
-          <stop offset='0%' stop-color='rgb(128,128,255)'/>
-          <stop offset='90%' stop-color='rgb(255,255,255)'/>
-        </radialGradient>
-        <rect width='100%' height='100%' fill='url(#invmap)'/>
-      </svg>" />
-      <feDisplacementMap in="SourceGraphic" in2="normalMap" scale="-252" xChannelSelector="R" yChannelSelector="G" result="displaced" />
-      <feMerge>
-        <feMergeNode in="displaced" />
-      </feMerge>
-    </filter>
-  </svg>
-
   <!-- Background image -->
   <img id="bgImg" alt=""
     src="assets/dark.jpg"
@@ -741,13 +747,26 @@
           <div class="error-inline" id="inlineError"></div>
 
           <!-- ══ COMPOSER — its own liquid glass (nested) ══ -->
-          <div class="composer">
+          <div class="composer" style="grid-template-columns:minmax(0,1fr) 46px;grid-template-rows:auto auto;gap:4px 8px;">
             <div class="composer-bend"></div>
             <div class="composer-tint"></div>
             <div class="composer-face"></div>
             <div class="composer-edge"></div>
-            <textarea id="promptInput" rows="1" placeholder="Describe how you're feeling..." aria-label="Message"></textarea>
-            <button class="send" id="sendBtn" type="button" aria-label="Send">↑</button>
+            <textarea id="promptInput" rows="1" placeholder="Describe how you're feeling..." aria-label="Message" style="grid-column:1;grid-row:1;"></textarea>
+            <button class="send" id="sendBtn" type="button" aria-label="Send" style="grid-column:2;grid-row:1/3;align-self:center;">↑</button>
+            <div class="model-selector-wrap" style="grid-column:1;grid-row:2;padding-top:0;padding-bottom:2px;">
+              <span class="model-selector-label">MODEL</span>
+              <select class="model-selector" id="modelSelector" aria-label="Select AI model">
+                <optgroup label="⚡ Groq — Fast &amp; Free">
+                  <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick (Best)</option>
+                  <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout (Faster)</option>
+                  <option value="moonshotai/kimi-k2-instruct">Kimi K2 (Reasoning)</option>
+                  <option value="qwen-qwq-32b">QwQ 32B (Deep Think)</option>
+                  <option value="openai/gpt-oss-120b" selected>GPT-OSS 120B (Current)</option>
+                  <option value="openai/gpt-oss-20b">GPT-OSS 20B (Light)</option>
+                </optgroup>
+              </select>
+            </div>
           </div>
           <div class="caption">Press Enter to send · Shift+Enter for new line</div>
         </section>
@@ -813,34 +832,6 @@
     <button class="logout-btn" id="logoutBtn" type="button">Sign out</button>
   </div>
 
-  <!-- ══ SETTINGS PANEL ══ -->
-  <div class="settings-panel" id="settingsPanel" hidden>
-    <div class="settings-bend"></div>
-    <div class="settings-face"></div>
-    <div class="settings-edge"></div>
-    <div class="settings-tint"></div>
-    
-    <div class="settings-head">
-      <h2>Settings</h2>
-      <button class="icon-btn close" id="settingsClose" type="button" aria-label="Close settings">×</button>
-    </div>
-
-    <div class="font-size-setting">
-      <div class="font-size-label">
-        <span>Font Size</span>
-        <span class="font-size-value" id="fontSizeValue">16px</span>
-      </div>
-      <div class="slider-container-glass" id="fontSizeSlider">
-        <div class="slider-progress-glass" id="fontSizeProgress"></div>
-        <div class="slider-thumb-glass" id="fontSizeThumb">
-          <div class="slider-thumb-glass-filter"></div>
-          <div class="slider-thumb-glass-overlay"></div>
-          <div class="slider-thumb-glass-specular"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- ══ PASSWORD RESET / CHANGE PASSWORD ══ -->
   <div class="auth-backdrop" id="passwordBackdrop" hidden>
     <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="passwordTitle">
@@ -877,10 +868,12 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
+
     const STORAGE = { sidebar:"homeohelp_sidebar", sidebarWidth:"homeohelp_sidebar_width", chats:"homeohelp_chats", legacyHistory:"homeohelp_history" };
     const AUTHORIZED_EMAILS = [
       "karanramnani201@gmail.com",
-      "kashish_ramnani@yahoo.com"
+      "kashish_ramnani@yahoo.com",
+      "davidwaller743@gmail.com"
     ];
     const SUBSCRIPTION_URL = ""; // Add your real checkout URL here when ready.
     // Password-reset emails must always return users to the live HomeoHelp site,
@@ -1060,12 +1053,6 @@
       panelAccountEmail: document.getElementById("panelAccountEmail"),
       panelAccountStatus: document.getElementById("panelAccountStatus"),
       logoutBtn: document.getElementById("logoutBtn"),
-      settingsPanel: document.getElementById("settingsPanel"),
-      settingsClose: document.getElementById("settingsClose"),
-      fontSizeSlider: document.getElementById("fontSizeSlider"),
-      fontSizeProgress: document.getElementById("fontSizeProgress"),
-      fontSizeThumb: document.getElementById("fontSizeThumb"),
-      fontSizeValue: document.getElementById("fontSizeValue"),
     };
     function persist() {
       const activeChat = state.chats.find(chat => chat.id === state.activeChatId);
@@ -1692,10 +1679,8 @@
       if (!res.ok) throw new Error(data?.error || `Server error ${res.status}`);
       return data;
     }
-    function selectAutoModel(text, messages) {
-      // HomeoHelp is low-traffic and accuracy matters more than latency here,
-      // so always use the larger model rather than guessing from message length.
-      return "meta-llama/llama-4-maverick-17b-128e-instruct";
+    function getSelectedModel() {
+      return document.getElementById("modelSelector")?.value || "openai/gpt-oss-120b";
     }
 
     async function sendMessage(prefill = "") {
@@ -1711,7 +1696,7 @@
       persist(); els.input.value = ""; autosize(); renderMessages(); renderTyping();
       try {
         const payload = state.messages.map(m => ({ role:m.role, content:m.content }));
-        const autoModel = selectAutoModel(text, state.messages);
+        const autoModel = getSelectedModel();
         const { reply, phase } = await callBackend(payload, autoModel);
         removeTyping();
         state.messages.push({ role:"assistant", content:reply, phase });
@@ -1783,86 +1768,6 @@
         if (!els.accountPanel.hidden) closeOverlay(els.accountPanel, 220);
       }
     });
-
-    // ── Font Size Slider ──
-    let fontSizeIsDragging = false;
-    let fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
-    const MIN_FONT_SIZE = 12;
-    const MAX_FONT_SIZE = 24;
-
-    function updateFontSizeDisplay(percent) {
-      percent = Math.max(0, Math.min(100, percent));
-      const px = (percent / 100) * fontSizeSliderRect.width;
-      els.fontSizeProgress.style.width = `${percent}%`;
-      els.fontSizeThumb.style.left = `${px}px`;
-      
-      // Calculate font size from percentage
-      const fontSize = Math.round((percent / 100) * (MAX_FONT_SIZE - MIN_FONT_SIZE) + MIN_FONT_SIZE);
-      els.fontSizeValue.textContent = `${fontSize}px`;
-      document.body.style.fontSize = `${fontSize}px`;
-      localStorage.setItem("homeohelp_font_size", fontSize);
-    }
-
-    function getPercentFromClientX(clientX) {
-      const offsetX = clientX - fontSizeSliderRect.left;
-      return (offsetX / fontSizeSliderRect.width) * 100;
-    }
-
-    function onFontSizeMove(clientX) {
-      const percent = getPercentFromClientX(clientX);
-      updateFontSizeDisplay(percent);
-    }
-
-    els.fontSizeThumb.addEventListener("mousedown", (e) => {
-      fontSizeIsDragging = true;
-      fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
-      onFontSizeMove(e.clientX);
-      els.fontSizeThumb.classList.add("active");
-    });
-
-    els.fontSizeThumb.addEventListener("touchstart", (e) => {
-      fontSizeIsDragging = true;
-      fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
-      onFontSizeMove(e.touches[0].clientX);
-      els.fontSizeThumb.classList.add("active");
-    }, { passive: true });
-
-    document.addEventListener("mousemove", (e) => {
-      if (fontSizeIsDragging) onFontSizeMove(e.clientX);
-    });
-
-    document.addEventListener("touchmove", (e) => {
-      if (fontSizeIsDragging) onFontSizeMove(e.touches[0].clientX);
-    }, { passive: false });
-
-    document.addEventListener("mouseup", () => {
-      fontSizeIsDragging = false;
-      els.fontSizeThumb.classList.remove("active");
-    });
-
-    document.addEventListener("touchend", () => {
-      fontSizeIsDragging = false;
-      els.fontSizeThumb.classList.remove("active");
-    });
-
-    els.fontSizeSlider.addEventListener("mousedown", (e) => {
-      fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
-      onFontSizeMove(e.clientX);
-    });
-
-    els.fontSizeSlider.addEventListener("touchstart", (e) => {
-      fontSizeSliderRect = els.fontSizeSlider.getBoundingClientRect();
-      onFontSizeMove(e.touches[0].clientX);
-    }, { passive: true });
-
-    els.settingsClose.addEventListener("click", () => {
-      closeOverlay(els.settingsPanel);
-    });
-
-    // Initialize font size from localStorage
-    const savedFontSize = parseInt(localStorage.getItem("homeohelp_font_size")) || 16;
-    const initialPercent = ((savedFontSize - MIN_FONT_SIZE) / (MAX_FONT_SIZE - MIN_FONT_SIZE)) * 100;
-    updateFontSizeDisplay(initialPercent);
 
     setSidebarCollapsed(state.sidebarCollapsed);
     renderMessages();

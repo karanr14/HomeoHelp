@@ -35,15 +35,16 @@ const AUTHORIZED_EMAILS = [
 
 
 const CHAT_MODELS = new Set([
-  // Groq via OpenAI-compat (verified working)
-  "openai/gpt-oss-20b",
-  // Llama 4 on Groq
-  "meta-llama/llama-4-maverick-17b-128e-instruct",
-  "meta-llama/llama-4-scout-17b-16e-instruct",
-  // Other Groq models
-  "moonshotai/kimi-k2-instruct",
-  "qwen-qwq-32b",
+  // Recommended
+  "openai/gpt-oss-120b",
   "llama-3.3-70b-versatile",
+  "groq/compound",
+  // Fast
+  "openai/gpt-oss-20b",
+  "groq/compound-mini",
+  "llama-3.1-8b-instant",
+  // Preview
+  "qwen/qwen3.8-27b",
 ]);
 
 
@@ -172,8 +173,7 @@ async function callGroq(messages, model, maxTokens = 1200) {
   if (!res.ok) {
     const msg =
       data?.error?.message ||
-      data?.error?.code ||
-      `Groq error ${res.status} — model: ${model}`;
+      `Groq error ${res.status}`;
 
     throw new Error(msg);
   }
@@ -283,14 +283,14 @@ module.exports = async function handler(req, res) {
 
   const {
     messages = [],
-    model = "meta-llama/llama-4-maverick-17b-128e-instruct"
+    model = "openai/gpt-oss-20b"
   } = body;
 
 
   const selectedModel =
     CHAT_MODELS.has(model)
       ? model
-      : "meta-llama/llama-4-maverick-17b-128e-instruct";
+      : "openai/gpt-oss-20b";
 
 
   if (!Array.isArray(messages) || messages.length === 0) {
