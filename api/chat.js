@@ -35,16 +35,8 @@ const AUTHORIZED_EMAILS = [
 
 
 const CHAT_MODELS = new Set([
-  // Recommended
   "openai/gpt-oss-120b",
-  "llama-3.3-70b-versatile",
-  "groq/compound",
-  // Fast
   "openai/gpt-oss-20b",
-  "groq/compound-mini",
-  "llama-3.1-8b-instant",
-  // Preview
-  "qwen/qwen3.8-27b",
 ]);
 
 
@@ -283,14 +275,14 @@ module.exports = async function handler(req, res) {
 
   const {
     messages = [],
-    model = "openai/gpt-oss-20b"
+    model = "openai/gpt-oss-120b"
   } = body;
 
 
   const selectedModel =
     CHAT_MODELS.has(model)
       ? model
-      : "openai/gpt-oss-20b";
+      : "openai/gpt-oss-120b";
 
 
   if (!Array.isArray(messages) || messages.length === 0) {
