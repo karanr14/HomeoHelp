@@ -389,9 +389,87 @@
     .app.sidebar-collapsed .chat-list{display:none}
     .app.sidebar-collapsed .chat-item{justify-content:center;padding-left:0;padding-right:0}
 
-    @media(max-width:980px){.app{grid-template-columns:215px minmax(0,1fr)}.hero{padding:28px;grid-template-columns:1fr 250px}.hero h1{font-size:54px}}
-    @media(max-width:760px){body{overflow:auto}.app,.app.sidebar-collapsed{height:auto;min-height:100vh;display:block;padding:12px}.app.sidebar-collapsed .brand-copy,.app.sidebar-collapsed .new-chat,.app.sidebar-collapsed .chat-list-label,.app.sidebar-collapsed .chat-item span:last-child{opacity:1;transform:none;pointer-events:auto}.app.sidebar-collapsed .sidebar-head{justify-content:space-between;padding-left:8px;padding-right:4px}.app.sidebar-collapsed .chat-item{justify-content:flex-start;padding-left:12px;padding-right:12px}.sidebar{position:fixed;left:12px;right:12px;top:12px;height:auto;z-index:15;transform:translateY(calc(-100% - 25px));transition:transform .42s cubic-bezier(.22,1,.36,1);padding:12px;max-height:calc(100vh - 24px);overflow:auto}.sidebar.open{transform:translateY(0)}.mobile-menu{display:grid}.sidebar-head{padding-bottom:12px}.main{min-height:calc(100vh - 24px)}.topbar{padding:0 0 12px 0}.hero{grid-template-columns:1fr;min-height:0;padding:26px 22px}.hero h1{font-size:48px}.messages{max-height:52vh}.bubble{max-width:88%}.bubble.assistant{width:100%;max-width:100%}.settings-panel{top:12px;right:12px;width:calc(100vw - 24px)}.content{max-width:100%}}
-    @media(max-width:480px){.hero h1{font-size:40px}.hero p{font-size:13px}.status{font-size:10px}.chips{display:grid}.chip{width:100%;text-align:left}}
+    /* ── Hero typography & chips ── */
+    .home-title{
+      margin:0 0 18px;
+      font-size:72px;font-weight:800;line-height:1.08;letter-spacing:-.04em;
+      color:#fff;
+    }
+    .home-title .accent{color:var(--accent)}
+    .home-letter{
+      display:inline-block;
+      opacity:0;transform:translateY(22px) scale(.88);
+      animation:letter-in .6s cubic-bezier(.22,1,.36,1) forwards;
+      animation-delay:calc(var(--letter-index) * 28ms);
+    }
+    @keyframes letter-in{to{opacity:1;transform:translateY(0) scale(1)}}
+    .quick-label{
+      font-size:11px;letter-spacing:.16em;color:rgba(255,255,255,.38);
+      margin-bottom:14px;font-weight:600;
+    }
+    .chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+    .chip{
+      border:1px solid rgba(255,255,255,.22);
+      border-radius:999px;padding:10px 18px;
+      background:rgba(255,255,255,.08);
+      color:rgba(255,255,255,.82);font-size:14px;font-weight:500;
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      transition:.18s ease;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.18);
+    }
+    .chip:hover{background:rgba(255,255,255,.14);border-color:rgba(45,212,167,.5);color:#fff;transform:translateY(-1px)}
+
+    /* ── Home particles ── */
+    .home-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit;z-index:6}
+    .home-particle{
+      position:absolute;bottom:-12px;
+      width:var(--size,8px);height:var(--size,8px);
+      border-radius:50%;
+      background:radial-gradient(circle at 35% 35%,rgba(255,255,255,.9),rgba(45,212,167,.55) 60%,transparent);
+      opacity:0;
+    }
+    .home-particles.active .home-particle{
+      animation:particle-rise var(--duration,6s) var(--delay,0s) ease-in-out forwards;
+    }
+    @keyframes particle-rise{
+      0%{opacity:0;transform:translateY(0) translateX(0) scale(1)}
+      12%{opacity:.65}
+      85%{opacity:.18}
+      100%{opacity:0;transform:translateY(calc(-1 * var(--fall-distance,350px))) translateX(var(--drift,0px)) scale(.6)}
+    }
+
+    /* ── Model selector pill (in composer) ── */
+    .model-selector-wrap{
+      display:flex;align-items:center;gap:7px;
+      padding:5px 6px 5px 10px;
+      position:relative;z-index:3;
+    }
+    .model-selector-label{
+      font-size:10px;letter-spacing:.08em;color:rgba(255,255,255,.3);
+      white-space:nowrap;font-weight:600;flex-shrink:0;
+    }
+    .model-selector{
+      border:1px solid rgba(255,255,255,.13);
+      border-radius:10px;
+      background:rgba(255,255,255,.06);
+      color:rgba(255,255,255,.72);
+      font-size:12px;font-weight:500;
+      padding:5px 28px 5px 10px;
+      outline:none;
+      cursor:pointer;
+      appearance:none;-webkit-appearance:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.4)' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat:no-repeat;
+      background-position:right 8px center;
+      transition:.18s ease;
+      max-width:200px;
+    }
+    .model-selector:focus{border-color:rgba(45,212,167,.4);box-shadow:0 0 0 2px rgba(45,212,167,.08);color:#fff}
+    .model-selector option{background:#0d1a14;color:#eef7f3}
+
+    @media(max-width:980px){.app{grid-template-columns:215px minmax(0,1fr)}.hero{padding:28px;grid-template-columns:1fr 250px}.home-title{font-size:54px}}
+    @media(max-width:760px){body{overflow:auto}.app,.app.sidebar-collapsed{height:auto;min-height:100vh;display:block;padding:12px}.app.sidebar-collapsed .brand-copy,.app.sidebar-collapsed .new-chat,.app.sidebar-collapsed .chat-list-label,.app.sidebar-collapsed .chat-item span:last-child{opacity:1;transform:none;pointer-events:auto}.app.sidebar-collapsed .sidebar-head{justify-content:space-between;padding-left:8px;padding-right:4px}.app.sidebar-collapsed .chat-item{justify-content:flex-start;padding-left:12px;padding-right:12px}.sidebar{position:fixed;left:12px;right:12px;top:12px;height:auto;z-index:15;transform:translateY(calc(-100% - 25px));transition:transform .42s cubic-bezier(.22,1,.36,1);padding:12px;max-height:calc(100vh - 24px);overflow:auto}.sidebar.open{transform:translateY(0)}.mobile-menu{display:grid}.sidebar-head{padding-bottom:12px}.main{min-height:calc(100vh - 24px)}.topbar{padding:0 0 12px 0}.hero{grid-template-columns:1fr;min-height:0;padding:26px 22px}.home-title{font-size:48px}.messages{max-height:52vh}.bubble{max-width:88%}.bubble.assistant{width:100%;max-width:100%}.settings-panel{top:12px;right:12px;width:calc(100vw - 24px)}.content{max-width:100%}}
+    @media(max-width:480px){.home-title{font-size:40px}.hero p{font-size:13px}.status{font-size:10px}.chips{display:grid}.chip{width:100%;text-align:left}.model-selector-label{display:none}}
 
 
     /* ── Subscription access gate ── */
@@ -669,13 +747,26 @@
           <div class="error-inline" id="inlineError"></div>
 
           <!-- ══ COMPOSER — its own liquid glass (nested) ══ -->
-          <div class="composer">
+          <div class="composer" style="grid-template-columns:minmax(0,1fr) 46px;grid-template-rows:auto auto;gap:4px 8px;">
             <div class="composer-bend"></div>
             <div class="composer-tint"></div>
             <div class="composer-face"></div>
             <div class="composer-edge"></div>
-            <textarea id="promptInput" rows="1" placeholder="Describe how you're feeling..." aria-label="Message"></textarea>
-            <button class="send" id="sendBtn" type="button" aria-label="Send">↑</button>
+            <textarea id="promptInput" rows="1" placeholder="Describe how you're feeling..." aria-label="Message" style="grid-column:1;grid-row:1;"></textarea>
+            <button class="send" id="sendBtn" type="button" aria-label="Send" style="grid-column:2;grid-row:1/3;align-self:center;">↑</button>
+            <div class="model-selector-wrap" style="grid-column:1;grid-row:2;padding-top:0;padding-bottom:2px;">
+              <span class="model-selector-label">MODEL</span>
+              <select class="model-selector" id="modelSelector" aria-label="Select AI model">
+                <optgroup label="⚡ Groq — Fast &amp; Free">
+                  <option value="meta-llama/llama-4-maverick-17b-128e-instruct">Llama 4 Maverick (Best)</option>
+                  <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout (Faster)</option>
+                  <option value="moonshotai/kimi-k2-instruct">Kimi K2 (Reasoning)</option>
+                  <option value="qwen-qwq-32b">QwQ 32B (Deep Think)</option>
+                  <option value="openai/gpt-oss-120b" selected>GPT-OSS 120B (Current)</option>
+                  <option value="openai/gpt-oss-20b">GPT-OSS 20B (Light)</option>
+                </optgroup>
+              </select>
+            </div>
           </div>
           <div class="caption">Press Enter to send · Shift+Enter for new line</div>
         </section>
@@ -1588,10 +1679,8 @@
       if (!res.ok) throw new Error(data?.error || `Server error ${res.status}`);
       return data;
     }
-    function selectAutoModel(text, messages) {
-      // HomeoHelp is low-traffic and accuracy matters more than latency here,
-      // so always use the larger model rather than guessing from message length.
-      return "openai/gpt-oss-120b";
+    function getSelectedModel() {
+      return document.getElementById("modelSelector")?.value || "openai/gpt-oss-120b";
     }
 
     async function sendMessage(prefill = "") {
@@ -1607,7 +1696,7 @@
       persist(); els.input.value = ""; autosize(); renderMessages(); renderTyping();
       try {
         const payload = state.messages.map(m => ({ role:m.role, content:m.content }));
-        const autoModel = selectAutoModel(text, state.messages);
+        const autoModel = getSelectedModel();
         const { reply, phase } = await callBackend(payload, autoModel);
         removeTyping();
         state.messages.push({ role:"assistant", content:reply, phase });
