@@ -633,6 +633,47 @@
     .confirm-save { border:1px solid rgba(45,212,167,.3); border-radius:12px; padding:10px 17px; color:#06251d; background:var(--accent); font-weight:700; cursor:pointer; transition:.18s ease; }
     .confirm-save:hover { filter:brightness(1.06); }
 
+    /* ── Custom right-click context menu ── */
+    #ctx-menu {
+      position: fixed;
+      z-index: 9999;
+      min-width: 160px;
+      background: rgba(18, 26, 22, 0.92);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 12px;
+      padding: 6px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 1.5px 0 rgba(255,255,255,0.06) inset;
+      display: none;
+      animation: ctx-pop .12s cubic-bezier(.22,1,.36,1);
+    }
+    #ctx-menu.visible { display: block; }
+    @keyframes ctx-pop {
+      from { opacity: 0; transform: scale(0.92) translateY(-4px); }
+      to   { opacity: 1; transform: scale(1)    translateY(0);    }
+    }
+    .ctx-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+      transition: background .1s;
+    }
+    .ctx-item:hover { background: rgba(255,255,255,0.08); }
+    .ctx-item:active { background: rgba(255,255,255,0.13); }
+    .ctx-item svg { opacity: 0.7; flex-shrink: 0; }
+    .ctx-sep {
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      margin: 4px 0;
+    }
   </style>
   <script>
     // Liquid-glass press + ripple feedback, via delegation so it also covers
@@ -1622,7 +1663,13 @@
     }
     function updateTypingLayout() {
       const typing = Boolean(els.input.value.trim());
+      const hasMessages = state.messages.some(m => m.role === "user" || m.role === "assistant");
       els.content.classList.toggle("typing-active", typing);
+      // Never allow home-active when there are messages — prevents hero flashing on backspace
+      if (hasMessages) {
+        els.content.classList.remove("home-active");
+        els.content.classList.add("chat-active");
+      }
       els.main.classList.toggle("workspace-active", typing || !els.shell.classList.contains("empty"));
     }
     function prepareHomeText() {
@@ -1861,6 +1908,102 @@
     updateAccessGate();
     initAuth();
     handlePasswordRecovery();
+
+    // ── Custom right-click context menu for the textarea ──
+    const ctxMenu = document.createElement("div");
+    ctxMenu.id = "ctx-menu";
+    ctxMenu.setAttribute("role", "menu");
+    ctxMenu.innerHTML = `
+      <div class="ctx-item" id="ctx-paste" role="menuitem">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="4" y="1" width="7" height="2.5" rx="1.25" fill="currentColor" opacity=".5"/><rect x="2" y="2.5" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 7h6M4.5 10h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Paste
+      </div>
+      <div class="ctx-sep"></div>
+      <div class="ctx-item" id="ctx-cut" role="menuitem">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="4" cy="11" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="11" cy="11" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M4 9L7.5 5.5M11 9L7.5 5.5M7.5 5.5V2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Cut
+      </div>
+      <div class="ctx-item" id="ctx-copy" role="menuitem">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="4" y="4" width="8" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M3 10.5H2.5A1.5 1.5 0 011 9V2.5A1.5 1.5 0 012.5 1H9A1.5 1.5 0 0110.5 2.5V3" stroke="currentColor" stroke-width="1.3"/></svg>
+        Copy
+      </div>
+      <div class="ctx-sep"></div>
+      <div class="ctx-item" id="ctx-select-all" role="menuitem">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1" y="1" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 2"/><path d="M4.5 7.5h6M7.5 4.5v6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Select All
+      </div>
+    `;
+    document.body.appendChild(ctxMenu);
+
+    function hideCtxMenu() {
+      ctxMenu.classList.remove("visible");
+    }
+
+    function showCtxMenu(x, y) {
+      ctxMenu.classList.remove("visible");
+      // Position — keep inside viewport
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const mw = 180, mh = 170;
+      ctxMenu.style.left = (x + mw > vw ? vw - mw - 8 : x) + "px";
+      ctxMenu.style.top  = (y + mh > vh ? y - mh        : y) + "px";
+      ctxMenu.classList.add("visible");
+    }
+
+    els.input.addEventListener("contextmenu", async (e) => {
+      e.preventDefault();
+      showCtxMenu(e.clientX, e.clientY);
+    });
+
+    document.getElementById("ctx-paste").addEventListener("click", async () => {
+      hideCtxMenu();
+      try {
+        const text = await navigator.clipboard.readText();
+        const start = els.input.selectionStart;
+        const end   = els.input.selectionEnd;
+        const val   = els.input.value;
+        els.input.value = val.slice(0, start) + text + val.slice(end);
+        els.input.selectionStart = els.input.selectionEnd = start + text.length;
+        els.input.focus();
+        autosize();
+        updateTypingLayout();
+      } catch { /* clipboard permission denied — fallback */ }
+    });
+
+    document.getElementById("ctx-cut").addEventListener("click", async () => {
+      hideCtxMenu();
+      const start = els.input.selectionStart;
+      const end   = els.input.selectionEnd;
+      if (start === end) return; // nothing selected
+      const selected = els.input.value.slice(start, end);
+      try { await navigator.clipboard.writeText(selected); } catch {}
+      els.input.value = els.input.value.slice(0, start) + els.input.value.slice(end);
+      els.input.selectionStart = els.input.selectionEnd = start;
+      els.input.focus();
+      autosize();
+      updateTypingLayout();
+    });
+
+    document.getElementById("ctx-copy").addEventListener("click", async () => {
+      hideCtxMenu();
+      const selected = els.input.value.slice(els.input.selectionStart, els.input.selectionEnd);
+      if (selected) try { await navigator.clipboard.writeText(selected); } catch {}
+    });
+
+    document.getElementById("ctx-select-all").addEventListener("click", () => {
+      hideCtxMenu();
+      els.input.focus();
+      els.input.select();
+    });
+
+    // Close menu on any outside interaction
+    document.addEventListener("mousedown", (e) => {
+      if (!ctxMenu.contains(e.target)) hideCtxMenu();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") hideCtxMenu();
+    });
+    document.addEventListener("scroll", hideCtxMenu, true);
+
   </script>
 </body>
 </html>
