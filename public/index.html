@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0a0f0d" />
+  <script>
+    // Early devtools / print / save trap — runs before anything else loads
+    window.addEventListener("beforeprint", function(e) { e.preventDefault(); window.stop(); });
+    window.onbeforeprint = function() { return false; };
+    // Disable right-click at the earliest possible moment
+    document.addEventListener("contextmenu", function(e) { e.preventDefault(); }, true);
+  </script>
   <title>HomeoHelp — Wellness assistant</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -184,6 +191,7 @@
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
     .content{min-height:0;flex:1;display:flex;flex-direction:column;max-width:min(1560px,calc(100vw - var(--sidebar-actual-w,255px) - 46px));width:100%;margin:0 auto;transition:max-width var(--transition-snap)}
     .content.home-active .hero{flex:1;min-height:0}
+    .content.chat-active .hero{display:none}
     .content.chat-active .chat-shell{flex:1;min-height:0;margin-top:0}
     .content.chat-active .footer{display:none}
     .content.typing-active .hero{display:none}
@@ -638,13 +646,13 @@
       position: fixed;
       z-index: 9999;
       min-width: 160px;
-      background: rgba(18, 26, 22, 0.92);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+      background: rgba(18, 26, 22, 0.45);
+      backdrop-filter: blur(28px) saturate(1.6);
+      -webkit-backdrop-filter: blur(28px) saturate(1.6);
       border: 1px solid rgba(255,255,255,0.10);
       border-radius: 12px;
       padding: 6px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 1.5px 0 rgba(255,255,255,0.06) inset;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.28), 0 1.5px 0 rgba(255,255,255,0.08) inset;
       display: none;
       animation: ctx-pop .12s cubic-bezier(.22,1,.36,1);
     }
@@ -1855,6 +1863,62 @@
     document.addEventListener("keydown", event => {
       if (event.key === "Escape") closeChatMenus();
     });
+
+    // ── Block all source / devtools access ──────────────────────────────────
+    (function blockDevTools() {
+      // 1. Kill every keyboard shortcut that opens devtools or view-source
+      const BLOCKED = new Set([
+        "F12","F11","F10","F9","F8","F7","F5"
+      ]);
+      document.addEventListener("keydown", function(e) {
+        // F-keys
+        if (BLOCKED.has(e.key)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+        // Ctrl/Cmd combos
+        if (e.ctrlKey || e.metaKey) {
+          const k = e.key.toLowerCase();
+          // U = view-source, S = save, P = print (can reveal source), Shift+I/J/C = devtools
+          if (k === "u" || k === "s" || k === "p") { e.preventDefault(); e.stopImmediatePropagation(); return; }
+          if (e.shiftKey && (k === "i" || k === "j" || k === "c")) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+        }
+        // Alt+F4 / Cmd+Option+I (Mac devtools)
+        if (e.altKey && e.metaKey && e.key.toLowerCase() === "i") { e.preventDefault(); e.stopImmediatePropagation(); return; }
+      }, true);
+
+      // 2. Devtools size-detection — redirect away if panel is open
+      const THRESHOLD = 160;
+      let devOpen = false;
+      function checkDevTools() {
+        const widthDiff  = window.outerWidth  - window.innerWidth;
+        const heightDiff = window.outerHeight - window.innerHeight;
+        const opened = widthDiff > THRESHOLD || heightDiff > THRESHOLD;
+        if (opened && !devOpen) {
+          devOpen = true;
+          document.body.innerHTML = "";
+          window.location.replace("about:blank");
+        }
+        if (!opened) devOpen = false;
+      }
+      setInterval(checkDevTools, 800);
+
+      // 3. debugger trap — pausing in devtools freezes on this line
+      const _trap = function() { };
+      setInterval(function() {
+        const t0 = performance.now();
+        (function() { _trap(); })();
+        // debugger; // intentionally left without "debugger" keyword to avoid self-triggering
+      }, 3000);
+
+      // 4. Disable text selection on the whole page so "View Page Source" via
+      //    long-press context menus on mobile is also blocked
+      document.addEventListener("selectstart", function(e) {
+        // Allow selection inside inputs and textareas only
+        if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
+        e.preventDefault();
+      });
+
+      // 5. Block drag (draging source files out)
+      document.addEventListener("dragstart", function(e) { e.preventDefault(); });
+    })();
     window.addEventListener("scroll", () => closeChatMenus(), true);
     window.addEventListener("resize", () => closeChatMenus());
     els.send.addEventListener("click", () => sendMessage());
