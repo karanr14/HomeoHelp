@@ -35,8 +35,15 @@ const AUTHORIZED_EMAILS = [
 
 
 const CHAT_MODELS = new Set([
-  "openai/gpt-oss-120b",
+  // Groq via OpenAI-compat (verified working)
   "openai/gpt-oss-20b",
+  // Llama 4 on Groq
+  "meta-llama/llama-4-maverick-17b-128e-instruct",
+  "meta-llama/llama-4-scout-17b-16e-instruct",
+  // Other Groq models
+  "moonshotai/kimi-k2-instruct",
+  "qwen-qwq-32b",
+  "llama-3.3-70b-versatile",
 ]);
 
 
@@ -165,7 +172,8 @@ async function callGroq(messages, model, maxTokens = 1200) {
   if (!res.ok) {
     const msg =
       data?.error?.message ||
-      `Groq error ${res.status}`;
+      data?.error?.code ||
+      `Groq error ${res.status} — model: ${model}`;
 
     throw new Error(msg);
   }
@@ -175,24 +183,14 @@ async function callGroq(messages, model, maxTokens = 1200) {
 
 
 // ─── System prompts ───────────────────────────────────────────────────────────
-const SYSTEM_BASE = `You are an intelligent, context-aware Homeopathy Information Assistant designed for educational use. Your job is to understand the user's symptoms, build an accurate symptom picture, and compare traditional homeopathic remedy profiles.
+const SYSTEM_BASE = `You are an intelligent, context-aware Homeopathy Information Assistant designed for educational use. Your job is to understand the user's symptoms, organize the symptom picture, ask relevant follow-up questions, and compare traditional homeopathic remedy profiles. Always remember and use information already given in the conversation; never repeat questions, restart the questionnaire, assume symptoms, or introduce unrelated symptoms.
 
-QUESTION RULES — follow these strictly:
-- On the FIRST reply, ask ALL the important questions you need in one single message. Group them naturally. Cover: location, onset, duration, sensation/character, severity, what makes it better, what makes it worse, and any associated symptoms — but only what is relevant to the complaint. Do not hold questions back for later turns.
-- After the first reply, ask AT MOST ONE follow-up question per message, and only if the answer would genuinely change the remedy ranking. If you already have enough, do not ask anything.
-- NEVER ask about thirst, appetite, sleep, temperature preferences, cravings, or spasms unless the patient has already mentioned them or they are directly relevant to the specific complaint.
-- NEVER repeat a question already answered. NEVER restart the questionnaire.
-- NEVER assume or introduce symptoms the patient has not mentioned.
+IMPORTANT — HOW TO ASK QUESTIONS: Always format your follow-up questions as a numbered list. Never ask more than 3 questions at a time. Only ask questions that meaningfully clarify the complaint or distinguish remedy profiles. Example format:
+1. Where exactly is the pain located?
+2. Does anything make it better or worse?
+3. When did it start?
 
-REMEDY RULES:
-- Do not jump to remedies after just one or two symptoms. Gather a full picture first.
-- Once enough information is available, summarize the symptom pattern and compare the most relevant traditional homeopathic remedies.
-- Provide up to 10–15 genuinely relevant remedies ranked by how closely their traditional profiles match. Do not pad the list with weak matches.
-- Give each remedy an overall symptom-match score out of 10. You may also give scores per symptom (e.g. "Back pain: 9/10") when useful.
-- For every remedy, briefly explain the matching symptoms and flag any important symptoms that are absent or unclear.
-- After the comparison, ask one follow-up question only if a specific answer would clearly distinguish between the top two remedies.
-
-TONE: Be natural, concise, conversational, and context-aware. No repetitive disclaimers, no robotic lists, no false certainty. Scores represent traditional profile similarity, not guaranteed medical effectiveness.`;
+Focus on the main complaint, exact location, onset, duration, sensation, severity, causes, better/worse factors, associated symptoms, and relevant general symptoms when appropriate. Do not use a generic questionnaire or ask about things such as thirst, appetite, sleep, temperature, cravings, or spasms unless they are directly relevant to the current complaint. Do not jump to a remedy based on one symptom. Once enough information is available, summarize the symptom pattern and compare the most relevant traditional homeopathic remedies. Provide up to 10–15 genuinely relevant remedies when possible, without adding unrelated remedies just to reach the number. Rank them by how closely their traditional profiles match the user's described symptoms and give each an overall symptom-match score out of 10. You may also give specific scores for individual symptoms, such as "Back pain: 9/10" or "Stiffness: 8/10," when useful. For every remedy, briefly explain the matching symptoms and any important symptoms that are missing or unclear. After the comparison, identify the one or two key symptoms that would best distinguish the leading remedy profiles and ask a follow-up question only if necessary. Scores represent traditional symptom-profile similarity, not guaranteed medical effectiveness. Be natural, concise, logical, conversational, and context-aware. Avoid repetitive disclaimers, robotic responses, random remedy lists, and false certainty. Your priority is to build an accurate symptom picture first, then provide a clear, detailed, and logically explained comparison of traditional remedy profiles.`;
 
 
 const SYSTEM_PHASE1 = `${SYSTEM_BASE}
@@ -292,14 +290,14 @@ module.exports = async function handler(req, res) {
 
   const {
     messages = [],
-    model = "openai/gpt-oss-120b"
+    model = "meta-llama/llama-4-maverick-17b-128e-instruct"
   } = body;
 
 
   const selectedModel =
     CHAT_MODELS.has(model)
       ? model
-      : "openai/gpt-oss-120b";
+      : "meta-llama/llama-4-maverick-17b-128e-instruct";
 
 
   if (!Array.isArray(messages) || messages.length === 0) {
