@@ -592,6 +592,47 @@
     .new-chat.is-pressed .nav-icon{transform:scale(0.85) rotate(-8deg)}
     .icon-btn.is-pressed,.account-btn.is-pressed,.chat-open.is-pressed{filter:brightness(1.08)}
 
+    /* ── Mobile animation & performance fixes ── */
+    @media (max-width: 760px) {
+      /* backdrop-filter is GPU-heavy and unreliable on many mobile browsers */
+      .lg-bend { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+      .composer-bend { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+      /* Solid tint fallback so glass still looks good without the blur */
+      .sidebar.lg-surface, .hero.lg-surface, .chat-shell.lg-surface {
+        background: rgba(8,16,12,0.78);
+      }
+      /* Promote animated elements to their own compositor layer */
+      .home-letter { will-change: transform, opacity; }
+      .home-particle { will-change: transform, opacity; }
+      .bubble { will-change: transform, opacity; }
+      /* Hero overflow:hidden clips the letter-rise animation on small screens */
+      .hero { overflow: visible; }
+      .home-particles { overflow: hidden; }
+      /* Simplify bubble animation on mobile for smoother perf */
+      @keyframes bubble-in {
+        0%   { opacity:0; transform:translateY(10px) scale(.94); filter:blur(0); }
+        100% { opacity:1; transform:translateY(0)    scale(1);   filter:blur(0); }
+      }
+    }
+    /* Respect user's reduce-motion OS setting */
+    @media (prefers-reduced-motion: reduce) {
+      .home-letter  { animation: none !important; opacity: 1 !important; transform: none !important; }
+      .home-particle{ animation: none !important; }
+      .bubble       { animation: none !important; opacity: 1 !important; transform: none !important; }
+    }
+
+    /* ── Custom confirm dialog ── */
+    .confirm-dialog-actions { display:flex; justify-content:flex-end; gap:9px; margin-top:20px; }
+    .confirm-cancel { border:1px solid rgba(255,255,255,.14); border-radius:12px; padding:10px 17px; background:rgba(255,255,255,.06); color:#c3d0cc; font-weight:600; cursor:pointer; transition:.18s ease; }
+    .confirm-cancel:hover { background:rgba(255,255,255,.11); color:#fff; }
+    .confirm-delete { border:1px solid rgba(255,100,103,.35); border-radius:12px; padding:10px 17px; background:rgba(255,100,103,.12); color:#ffb3b5; font-weight:700; cursor:pointer; transition:.18s ease; }
+    .confirm-delete:hover { background:rgba(255,100,103,.22); color:#ffd0d1; }
+    /* Rename input inside dialog */
+    .rename-input { width:100%; border:1px solid rgba(255,255,255,.13); border-radius:12px; background:rgba(0,0,0,.18); color:var(--text); padding:11px 12px; outline:none; font:inherit; font-size:14px; margin-top:4px; }
+    .rename-input:focus { border-color:rgba(45,212,167,.5); box-shadow:0 0 0 3px rgba(45,212,167,.08); }
+    .confirm-save { border:1px solid rgba(45,212,167,.3); border-radius:12px; padding:10px 17px; color:#06251d; background:var(--accent); font-weight:700; cursor:pointer; transition:.18s ease; }
+    .confirm-save:hover { filter:brightness(1.06); }
+
   </style>
   <script>
     // Liquid-glass press + ripple feedback, via delegation so it also covers
@@ -1338,20 +1379,105 @@
       persist();
       renderChatList();
     }
-    function deleteChat(chat) {
-      if (!window.confirm(`Delete "${chat.title}"?`)) return;
-      state.chats = state.chats.filter(item => item.id !== chat.id);
-      if (state.activeChatId === chat.id) {
-        state.activeChatId = null;
-        state.messages = [];
-        els.input.value = "";
-        autosize();
-        updateTypingLayout();
-        renderMessages();
+    // ── Custom confirm / prompt dialogs (replaces window.confirm & window.prompt) ──
+    function showConfirmDialog({ title = "Are you sure?", message = "", confirmText = "Confirm", cancelText = "Cancel", danger = false, onConfirm }) {
+      const backdrop = els.siteDialogBackdrop;
+      const card     = els.siteDialogCard;
+      // Temporarily repurpose the site dialog for confirm
+      card.classList.toggle("error", danger);
+      els.siteDialogIcon.textContent = danger ? "🗑" : "?";
+      els.siteDialogTitle.textContent = title;
+      els.siteDialogMessage.textContent = message;
+      // Hide the default OK button, inject confirm/cancel row
+      els.siteDialogOk.style.display = "none";
+      const existingActions = card.querySelector(".confirm-dialog-actions");
+      if (existingActions) existingActions.remove();
+      const actions = document.createElement("div");
+      actions.className = "confirm-dialog-actions";
+      const cancel = document.createElement("button");
+      cancel.type = "button"; cancel.className = "confirm-cancel"; cancel.textContent = cancelText;
+      const confirm = document.createElement("button");
+      confirm.type = "button";
+      confirm.className = danger ? "confirm-delete" : "confirm-save";
+      confirm.textContent = confirmText;
+      actions.append(cancel, confirm);
+      card.appendChild(actions);
+      function closeDialog() {
+        closeOverlay(backdrop);
+        window.setTimeout(() => {
+          els.siteDialogOk.style.display = "";
+          actions.remove();
+        }, 340);
       }
-      persist();
-      renderChatList();
-      deleteChatFromSupabase(chat.id);
+      cancel.addEventListener("click", closeDialog);
+      confirm.addEventListener("click", () => { closeDialog(); onConfirm(); });
+      openOverlay(backdrop);
+      window.setTimeout(() => cancel.focus(), 180);
+    }
+
+    function showRenameDialog(chat) {
+      const backdrop = els.siteDialogBackdrop;
+      const card     = els.siteDialogCard;
+      card.classList.remove("error");
+      els.siteDialogIcon.textContent = "✏️";
+      els.siteDialogTitle.textContent = "Rename chat";
+      els.siteDialogMessage.textContent = "";
+      els.siteDialogOk.style.display = "none";
+      const existingActions = card.querySelector(".confirm-dialog-actions");
+      if (existingActions) existingActions.remove();
+      const input = document.createElement("input");
+      input.type = "text"; input.className = "rename-input";
+      input.value = chat.title; input.maxLength = 48;
+      const actions = document.createElement("div");
+      actions.className = "confirm-dialog-actions";
+      const cancel = document.createElement("button");
+      cancel.type = "button"; cancel.className = "confirm-cancel"; cancel.textContent = "Cancel";
+      const save = document.createElement("button");
+      save.type = "button"; save.className = "confirm-save"; save.textContent = "Save";
+      actions.append(cancel, save);
+      card.insertBefore(input, card.querySelector(".site-dialog-actions"));
+      card.appendChild(actions);
+      function closeDialog() {
+        closeOverlay(backdrop);
+        window.setTimeout(() => {
+          els.siteDialogOk.style.display = "";
+          actions.remove();
+          input.remove();
+        }, 340);
+      }
+      cancel.addEventListener("click", closeDialog);
+      save.addEventListener("click", () => {
+        const title = input.value.trim().slice(0, 48);
+        if (title) updateChat(chat, { title });
+        closeDialog();
+      });
+      input.addEventListener("keydown", e => { if (e.key === "Enter") save.click(); if (e.key === "Escape") cancel.click(); });
+      openOverlay(backdrop);
+      window.setTimeout(() => { input.focus(); input.select(); }, 180);
+    }
+
+    function deleteChat(chat) {
+      showConfirmDialog({
+        title: "Delete chat?",
+        message: `"${chat.title}" will be permanently deleted.`,
+        confirmText: "Delete",
+        cancelText: "Cancel",
+        danger: true,
+        onConfirm: () => {
+          state.chats = state.chats.filter(item => item.id !== chat.id);
+          if (state.activeChatId === chat.id) {
+            state.activeChatId = null;
+            state.messages = [];
+            els.input.value = "";
+            autosize();
+            updateTypingLayout();
+            renderMessages();
+          }
+          persist();
+          renderChatList();
+          deleteChatFromSupabase(chat.id);
+        }
+      });
     }
     function positionFloatingMenu(menu, anchorEl) {
       const anchorRect = anchorEl.getBoundingClientRect();
@@ -1377,9 +1503,8 @@
       rename.type = "button";
       rename.textContent = "Rename";
       rename.addEventListener("click", () => {
-        const title = window.prompt("Rename chat", chat.title)?.trim();
-        if (title) updateChat(chat, { title:title.slice(0, 48) });
         closeChatMenus();
+        showRenameDialog(chat);
       });
       const save = document.createElement("button");
       save.type = "button";
