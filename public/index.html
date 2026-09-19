@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0a0f0d" />
   <script>
-    // Early devtools / print / save trap — runs before anything else loads
     window.addEventListener("beforeprint", function(e) { e.preventDefault(); window.stop(); });
     window.onbeforeprint = function() { return false; };
-    // Disable right-click at the earliest possible moment
     document.addEventListener("contextmenu", function(e) { e.preventDefault(); }, true);
   </script>
   <title>HomeoHelp — Wellness assistant</title>
@@ -20,7 +18,6 @@
       --muted:#97aaa3;--accent:#2dd4a7;--accent-2:#72f6cd;
       --danger:#ff8f91;--shadow:0 18px 60px rgba(0,0,0,.28);
       --radius-lg:24px;--radius-md:18px;--radius-sm:12px;
-      /* liquid-glass tokens (from reference) */
       --border-radius-lg:24px;
       --transition:0.4s cubic-bezier(0.5,1.5,0.5,1);
       --transition-snap:0.22s cubic-bezier(0.32,0.72,0,1);
@@ -29,25 +26,14 @@
     body{color:var(--text);background:var(--bg);font-family:'Plus Jakarta Sans','Inter',sans-serif;font-size:16px;overflow:hidden}
     button,input,select,textarea{font:inherit}button{cursor:pointer}
 
-    /* ── Background ── */
     body::before{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(circle at 50% 0%,rgba(255,255,255,.025),transparent 42%),linear-gradient(180deg,rgba(0,0,0,.06),rgba(0,0,0,.16))}
 
-    /* ═══════════════════════════════════════════════════════════
-       LIQUID GLASS SYSTEM
-       Three-layer approach from the reference snippet:
-         1. .lg-bend   → SVG turbulence displacement + backdrop blur (the "liquid" warp)
-         2. .lg-face   → subtle box-shadow depth
-         3. .lg-edge   → inset highlight border
-       Each .lg-surface is a positioning context for these layers.
-    ═══════════════════════════════════════════════════════════ */
     .lg-surface {
       position: relative;
       border-radius: var(--border-radius-lg);
       overflow: hidden;
       isolation: isolate;
     }
-
-    /* Layer 0 — the warping blur (exact approach from reference) */
     .lg-bend {
       position: absolute;
       inset: 0;
@@ -57,8 +43,6 @@
       z-index: 0;
       pointer-events: none;
     }
-
-    /* Layer 1 — depth shadow face */
     .lg-face {
       position: absolute;
       inset: 0;
@@ -69,8 +53,6 @@
       z-index: 1;
       pointer-events: none;
     }
-
-    /* Layer 2 — glass edge highlight (exact from reference) */
     .lg-edge {
       position: absolute;
       inset: 0;
@@ -81,8 +63,6 @@
       z-index: 2;
       pointer-events: none;
     }
-
-    /* Top specular line (like the ::after on .glass in reference) */
     .lg-surface::after {
       content:"";
       position:absolute;
@@ -93,14 +73,10 @@
       pointer-events:none;
       z-index:4;
     }
-
-    /* All content inside must be above the glass layers */
     .lg-surface > *:not(.lg-bend):not(.lg-face):not(.lg-edge) {
       position: relative;
       z-index: 3;
     }
-
-    /* Tinted background so the glass has something to refract */
     .lg-tint {
       position: absolute;
       inset: 0;
@@ -113,15 +89,12 @@
       pointer-events: none;
     }
 
-    /* ── Liquid glass press system (base — kept early so later, more specific
-         rules like position:absolute on .chat-menu-btn still win as intended) ── */
     .liquid-press{position:relative}
     .liquid-ripple{position:absolute;border-radius:50%;pointer-events:none;z-index:5;
       background:radial-gradient(circle, rgba(255,255,255,.4), rgba(45,212,167,.14) 55%, transparent 72%);
       transform:scale(0);opacity:.9;animation:liquid-ripple-pop .6s cubic-bezier(.22,1,.36,1) forwards}
     @keyframes liquid-ripple-pop{to{transform:scale(1);opacity:0}}
 
-    /* ── Layout ── */
     .app{position:relative;z-index:2;display:grid;grid-template-columns:var(--sidebar-w,255px) minmax(0,1fr);gap:10px;height:100vh;padding:18px;transition:grid-template-columns var(--transition-snap)}
     .app.sidebar-resizing{transition:none}
     .app.sidebar-collapsed{grid-template-columns:72px minmax(0,1fr)}
@@ -206,7 +179,6 @@
       align-items:center;gap:20px;
     }
     .hero-copy{position:relative;z-index:7;grid-column:1 / -1;width:100%;text-align:center;transform:translateY(-12px)}
-    /* ── Chat shell ── */
     .chat-shell{margin-top:14px;border-radius:var(--radius-lg);padding:14px;min-height:118px;display:flex;flex-direction:column}
     .messages{flex:1;min-height:0;overflow:auto;padding:10px 10px 18px;display:flex;flex-direction:column;gap:14px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent}
     .chat-shell.empty .messages{display:flex}
@@ -215,8 +187,6 @@
     .bubble::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 22%,rgba(255,255,255,.16) 43%,transparent 62%);transform:translateX(-120%);animation:glass-sheen 1.2s .12s cubic-bezier(.22,1,.36,1) both}
     @keyframes bubble-in{0%{opacity:0;transform:translateY(18px) scale(.94);border-radius:28px 28px 12px 12px;filter:blur(7px)}55%{opacity:.9;transform:translateY(-2px) scale(1.01);border-radius:20px 20px 15px 15px;filter:blur(1px)}100%{opacity:1;transform:translateY(0) scale(1);border-radius:18px;filter:blur(0)}}
     @keyframes glass-sheen{to{transform:translateX(120%)}}
-
-    /* Bubbles also get a mini liquid-glass treatment */
     .bubble.assistant{
       max-width:min(88%,1080px);
       background:rgba(255,255,255,.06);
@@ -255,7 +225,6 @@
       .copy-message:hover{color:#fff;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28)}
       .copy-message.copied{color:var(--accent)}
 
-    /* ── Composer — liquid glass input bar ── */
     .composer{
       position: relative;
       border-radius:17px;
@@ -324,7 +293,6 @@
     .send:disabled{opacity:.5;cursor:wait;transform:none}
     .caption{font-size:11px;color:#65756f;padding:9px 4px 0}
 
-    /* ── Greeting prompt (shown on new chat) ── */
     .greeting-bubble{
       display:flex;align-items:flex-start;gap:10px;
       padding:13px 16px;
@@ -336,7 +304,6 @@
     }
     .greeting-bubble .g-icon{font-size:18px;line-height:1;margin-top:1px}
 
-    /* ── One-time symptom warning modal ── */
     .warn-backdrop{position:fixed;inset:0;z-index:130;background:rgba(0,0,0,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:grid;place-items:center;padding:18px;opacity:0;transition:opacity .28s ease;pointer-events:none}
     .warn-backdrop[hidden]{display:none}
     .warn-backdrop.open{opacity:1;pointer-events:auto}
@@ -376,7 +343,6 @@
     .tip-banner strong{color:#2dd4a7;display:block;margin-bottom:2px;font-size:13px;}
     .tip-banner svg{flex-shrink:0;margin-top:2px;opacity:.8;}
 
-    /* ── New-chat nudge banner ── */
     .nudge-bar{
       display:flex;align-items:center;gap:10px;
       padding:9px 13px;margin-bottom:6px;
@@ -392,7 +358,6 @@
     .nudge-bar svg{flex-shrink:0;opacity:.75}
     .nudge-bar strong{color:#2dd4a7;font-weight:600}
 
-    /* ── List-mode toggle button ── */
     .toolbar-btn{
       display:flex;align-items:center;gap:5px;
       padding:4px 9px;border-radius:8px;border:1px solid rgba(255,255,255,0.10);
@@ -411,7 +376,6 @@
     .error-inline{font-size:12px;color:#ffb3b5;padding:0 4px 7px;display:none}
     .footer{font-size:11px;color:#5f706a;text-align:center;padding:13px 8px 2px}
 
-    /* ── Settings drawer ── */
     .drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.48);display:none;z-index:20}
     .drawer-backdrop.open{display:block}
     .settings-panel{
@@ -423,7 +387,6 @@
       overflow: hidden;
       isolation: isolate;
     }
-    /* Liquid glass layers for settings panel */
     .settings-bend {
       position:absolute;inset:0;border-radius:inherit;
       backdrop-filter: blur(6px);
@@ -452,7 +415,6 @@
       border: 1px solid rgba(255,255,255,.18);
       z-index:1;pointer-events:none;
     }
-    /* Specular top line for settings */
     .settings-panel::after{
       content:"";position:absolute;top:0;left:4%;right:4%;height:1px;
       background:linear-gradient(90deg,transparent,rgba(255,255,255,.55) 20%,rgba(255,255,255,.26) 50%,rgba(114,246,205,.24) 72%,transparent);
@@ -496,7 +458,6 @@
     .app.sidebar-collapsed .chat-list{display:none}
     .app.sidebar-collapsed .chat-item{justify-content:center;padding-left:0;padding-right:0}
 
-    /* ── Hero typography & chips ── */
     .home-title{
       margin:0 0 18px;
       font-size:72px;font-weight:800;line-height:1.08;letter-spacing:-.04em;
@@ -526,7 +487,6 @@
     }
     .chip:hover{background:rgba(255,255,255,.14);border-color:rgba(45,212,167,.5);color:#fff;transform:translateY(-1px)}
 
-    /* ── Home particles ── */
     .home-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit;z-index:6}
     .home-particle{
       position:absolute;bottom:-12px;
@@ -545,13 +505,10 @@
       100%{opacity:0;transform:translateY(calc(-1 * var(--fall-distance,350px))) translateX(var(--drift,0px)) scale(.6)}
     }
 
-
     @media(max-width:980px){.app{grid-template-columns:215px minmax(0,1fr)}.hero{padding:28px;grid-template-columns:1fr 250px}.home-title{font-size:54px}}
     @media(max-width:760px){body{overflow:auto}.app,.app.sidebar-collapsed{height:auto;min-height:100vh;display:block;padding:12px}.app.sidebar-collapsed .brand-copy,.app.sidebar-collapsed .new-chat,.app.sidebar-collapsed .chat-list-label,.app.sidebar-collapsed .chat-item span:last-child{opacity:1;transform:none;pointer-events:auto}.app.sidebar-collapsed .sidebar-head{justify-content:space-between;padding-left:8px;padding-right:4px}.app.sidebar-collapsed .chat-item{justify-content:flex-start;padding-left:12px;padding-right:12px}.sidebar{position:fixed;left:12px;right:12px;top:12px;height:auto;z-index:15;transform:translateY(calc(-100% - 25px));transition:transform .42s cubic-bezier(.22,1,.36,1);padding:12px;max-height:calc(100vh - 24px);overflow:auto}.sidebar.open{transform:translateY(0)}.mobile-menu{display:grid}.sidebar-head{padding-bottom:12px}.main{min-height:calc(100vh - 24px)}.topbar{padding:0 0 12px 0}.hero{grid-template-columns:1fr;min-height:0;padding:26px 22px}.home-title{font-size:48px}.messages{max-height:52vh}.bubble{max-width:88%}.bubble.assistant{width:100%;max-width:100%}.settings-panel{top:12px;right:12px;width:calc(100vw - 24px)}.content{max-width:100%}}
     @media(max-width:480px){.home-title{font-size:40px}.hero p{font-size:13px}.status{font-size:10px}.chips{display:grid}.chip{width:100%;text-align:left}.model-selector-label{display:none}}
 
-
-    /* ── Subscription access gate ── */
     .subscription-backdrop{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:grid;place-items:center;padding:18px;opacity:0;transition:opacity .4s var(--transition);pointer-events:none}
     .subscription-backdrop[hidden]{display:none}
     .subscription-backdrop.open{opacity:1;pointer-events:auto}
@@ -573,21 +530,21 @@
     .subscription-signout{width:100%;margin-top:10px;border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:11px;background:rgba(255,255,255,.06);color:#c9d9d3}
     .subscription-note{margin-top:12px!important;font-size:11px!important;color:#71837d!important}
 
-    /* ── Account / authentication ── */
+    /* ── FIXED: Account button — opaque dark background so content doesn't bleed through ── */
     .account-btn{
       width:100%;display:flex;align-items:center;gap:10px;padding:11px 12px;
-      border:1px solid rgba(255,255,255,.14);border-radius:13px;color:#c9d9d3;
-      background:rgba(255,255,255,.055);text-align:left;transition:.18s ease;
+      border:1px solid rgba(255,255,255,.18);border-radius:13px;color:#c9d9d3;
+      background:rgba(6,16,12,0.90);text-align:left;transition:.18s ease;
+      backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4);
+      box-shadow:0 1px 0 rgba(255,255,255,.10) inset,0 -1px 0 rgba(0,0,0,.30) inset;
     }
-    .account-btn:hover{background:rgba(255,255,255,.09);border-color:rgba(45,212,167,.3);color:var(--text)}
+    .account-btn:hover{background:rgba(12,30,22,0.95);border-color:rgba(45,212,167,.35);color:var(--text)}
     .account-avatar{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto;
       background:rgba(45,212,167,.12);border:1px solid rgba(45,212,167,.25);color:var(--accent);font-size:13px;font-weight:700}
     .account-copy{min-width:0;overflow:hidden}
     .account-copy strong,.account-copy span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .account-copy strong{font-size:13px}.account-copy span{font-size:11px;color:#81948d;margin-top:2px}
 
-
-    /* ── HomeoHelp custom dialogs ── */
     .site-dialog-backdrop{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.48);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:grid;place-items:center;padding:18px;opacity:0;transition:opacity .28s ease;pointer-events:none}
     .site-dialog-backdrop[hidden]{display:none}
     .site-dialog-backdrop.open{opacity:1;pointer-events:auto}
@@ -651,7 +608,6 @@
     .auth-status .dot{width:6px;height:6px;animation:none}
     .guest-note{margin-top:10px;color:#72837e;font-size:11px;line-height:1.45}
     .app.auth-locked .new-chat,.app.auth-locked .chat-section,.app.auth-locked .composer,.app.auth-locked .quick-label,.app.auth-locked .chips{opacity:.45}
-    /* Shared top specular highlight — same treatment as the sidebar/chat-shell glass surfaces */
     .subscription-card::after,.auth-card::after,.account-panel::after,.chat-menu::after{
       content:"";position:absolute;top:0;left:4%;right:4%;height:1px;
       background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.55) 20%,rgba(255,255,255,.26) 50%,rgba(114,246,205,.24) 72%,transparent 100%);
@@ -661,16 +617,10 @@
     .app.sidebar-collapsed .account-copy{opacity:0;transform:translateX(-10px);pointer-events:none;width:0}
     .app.sidebar-collapsed .account-btn{width:40px;height:40px;padding:0;margin:0 auto;justify-content:center;gap:0}
 
-    /* ═══════════════════════════════════════════════════════════
-       LIQUID GLASS ANIMATIONS — Apple-style springy motion
-       Placed last so the press state (.is-pressed) always beats any
-       element's own :hover transform at equal specificity.
-    ═══════════════════════════════════════════════════════════ */
     .liquid-press{transition:transform .5s cubic-bezier(0.34,1.56,0.64,1),background .2s ease,border-color .2s ease,box-shadow .2s ease}
     .liquid-press.is-pressed{transform:scale(0.93)}
     .app.sidebar-collapsed .liquid-press.is-pressed{transform:scale(0.93)}
 
-    /* Sidebar: fluid squish while dragging + spring settle on release */
     .sidebar{transition:transform var(--transition-snap)}
     .app.sidebar-resizing .sidebar,.app.sidebar-resizing .sidebar-resizer::before{transition:none}
     .app:not(.sidebar-resizing) .sidebar{transition:padding var(--transition-snap)}
@@ -680,13 +630,11 @@
     .app.sidebar-collapsed .sidebar-collapse,.app:not(.sidebar-collapsed) .sidebar-collapse{animation:sidebar-toggle-pop .5s cubic-bezier(0.34,1.56,0.64,1)}
     @keyframes sidebar-toggle-pop{0%{transform:scale(1)}40%{transform:scale(0.82) rotate(-6deg)}100%{transform:scale(1) rotate(0)}}
 
-    /* Bubbles: pronounced liquid morph pop */
     .bubble{animation:bubble-in .62s cubic-bezier(0.34,1.56,0.64,1) both}
     @keyframes bubble-in{0%{opacity:0;transform:translateY(14px) scale(.88);border-radius:30px 30px 10px 10px;filter:blur(8px)}60%{opacity:1;transform:translateY(-3px) scale(1.02);border-radius:14px 14px 17px 17px;filter:blur(0)}100%{opacity:1;transform:translateY(0) scale(1);border-radius:16px;filter:blur(0)}}
     .bubble.assistant{border-top-left-radius:6px!important}
     .bubble.user{border-top-right-radius:6px!important}
 
-    /* Panels & modals: springy morph open, quick fluid close */
     .auth-card,.subscription-card,.site-dialog-card,.account-panel,.chat-menu{
       transition:transform .55s cubic-bezier(0.34,1.56,0.64,1),filter .4s ease,opacity .3s ease!important;
     }
@@ -695,52 +643,41 @@
     .account-panel:not(.open){transition:transform .2s cubic-bezier(.4,0,1,1),opacity .16s ease!important}
     .chat-menu:not(.open){transition:transform .18s cubic-bezier(.4,0,1,1),opacity .14s ease!important}
 
-    /* Sign-in/out and new-chat morph feedback */
     .new-chat.is-pressed .nav-icon{transform:scale(0.85) rotate(-8deg)}
     .icon-btn.is-pressed,.account-btn.is-pressed,.chat-open.is-pressed{filter:brightness(1.08)}
 
-    /* ── Mobile animation & performance fixes ── */
     @media (max-width: 760px) {
-      /* backdrop-filter is GPU-heavy and unreliable on many mobile browsers */
       .lg-bend { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
       .composer-bend { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-      /* Solid tint fallback so glass still looks good without the blur */
       .sidebar.lg-surface, .hero.lg-surface, .chat-shell.lg-surface {
         background: rgba(8,16,12,0.78);
       }
-      /* Promote animated elements to their own compositor layer */
       .home-letter { will-change: transform, opacity; }
       .home-particle { will-change: transform, opacity; }
       .bubble { will-change: transform, opacity; }
-      /* Hero overflow:hidden clips the letter-rise animation on small screens */
       .hero { overflow: visible; }
       .home-particles { overflow: hidden; }
-      /* Simplify bubble animation on mobile for smoother perf */
       @keyframes bubble-in {
         0%   { opacity:0; transform:translateY(10px) scale(.94); filter:blur(0); }
         100% { opacity:1; transform:translateY(0)    scale(1);   filter:blur(0); }
       }
     }
-    /* Respect user's reduce-motion OS setting */
     @media (prefers-reduced-motion: reduce) {
       .home-letter  { animation: none !important; opacity: 1 !important; transform: none !important; }
       .home-particle{ animation: none !important; }
       .bubble       { animation: none !important; opacity: 1 !important; transform: none !important; }
     }
 
-    /* ── Custom confirm dialog ── */
     .confirm-dialog-actions { display:flex; justify-content:flex-end; gap:9px; margin-top:20px; }
     .confirm-cancel { border:1px solid rgba(255,255,255,.14); border-radius:12px; padding:10px 17px; background:rgba(255,255,255,.06); color:#c3d0cc; font-weight:600; cursor:pointer; transition:.18s ease; }
     .confirm-cancel:hover { background:rgba(255,255,255,.11); color:#fff; }
     .confirm-delete { border:1px solid rgba(255,100,103,.35); border-radius:12px; padding:10px 17px; background:rgba(255,100,103,.12); color:#ffb3b5; font-weight:700; cursor:pointer; transition:.18s ease; }
     .confirm-delete:hover { background:rgba(255,100,103,.22); color:#ffd0d1; }
-    /* Rename input inside dialog */
     .rename-input { width:100%; border:1px solid rgba(255,255,255,.13); border-radius:12px; background:rgba(0,0,0,.18); color:var(--text); padding:11px 12px; outline:none; font:inherit; font-size:14px; margin-top:4px; }
     .rename-input:focus { border-color:rgba(45,212,167,.5); box-shadow:0 0 0 3px rgba(45,212,167,.08); }
     .confirm-save { border:1px solid rgba(45,212,167,.3); border-radius:12px; padding:10px 17px; color:#06251d; background:var(--accent); font-weight:700; cursor:pointer; transition:.18s ease; }
     .confirm-save:hover { filter:brightness(1.06); }
 
-    /* ── Custom right-click context menu ── */
     #ctx-menu {
       position: fixed;
       z-index: 9999;
@@ -783,8 +720,6 @@
     }
   </style>
   <script>
-    // Liquid-glass press + ripple feedback, via delegation so it also covers
-    // elements re-created later (e.g. chat list rows get rebuilt on every render).
     (function () {
       const SELECTOR = [
         ".icon-btn", ".chip", ".new-chat", ".account-btn", ".chat-open", ".chat-menu-btn",
@@ -825,7 +760,6 @@
 </head>
 <body>
 
-  <!-- Background image -->
   <img id="bgImg" alt=""
     src="assets/dark.jpg"
     style="position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;filter:saturate(1.08) brightness(.72);transform:scale(1.015)"
@@ -833,9 +767,7 @@
 
   <div class="app">
 
-    <!-- ══ SIDEBAR — liquid glass ══ -->
     <aside class="sidebar lg-surface" id="sidebar">
-      <!-- glass layers -->
       <div class="lg-bend"></div>
       <div class="lg-tint"></div>
       <div class="lg-face"></div>
@@ -875,9 +807,7 @@
 
       <section class="content">
 
-        <!-- ══ HERO CARD — liquid glass ══ -->
         <section class="hero lg-surface" id="hero">
-          <!-- glass layers -->
           <div class="lg-bend"></div>
           <div class="lg-tint"></div>
           <div class="lg-face"></div>
@@ -896,9 +826,7 @@
           </div>
         </section>
 
-        <!-- ══ CHAT SHELL — liquid glass ══ -->
         <section class="chat-shell lg-surface empty" id="chatShell">
-          <!-- glass layers -->
           <div class="lg-bend"></div>
           <div class="lg-tint"></div>
           <div class="lg-face"></div>
@@ -907,13 +835,11 @@
           <div class="messages" id="messages" aria-live="polite"></div>
           <div class="error-inline" id="inlineError"></div>
 
-          <!-- nudge bar — shown when AI has asked a question and user opens a new chat -->
           <div class="nudge-bar" id="nudgeBar" role="alert" aria-live="polite">
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6.5" stroke="#2dd4a7" stroke-width="1.3"/><path d="M7.5 4.5v3.5l2 1.5" stroke="#2dd4a7" stroke-width="1.3" stroke-linecap="round"/></svg>
             <span>Continue in <strong>this chat</strong> — reply to the AI's question here, not in a new chat.</span>
           </div>
 
-          <!-- ══ COMPOSER — its own liquid glass (nested) ══ -->
           <div class="composer">
             <div class="composer-bend"></div>
             <div class="composer-tint"></div>
@@ -938,9 +864,6 @@
     </main>
   </div>
 
-
-
-  <!-- ══ SYMPTOM WARNING MODAL ══ -->
   <div class="warn-backdrop" id="warnBackdrop" hidden>
     <section class="warn-card" role="dialog" aria-modal="true" aria-labelledby="warnTitle">
       <div class="warn-icon">⚠️</div>
@@ -958,7 +881,6 @@
     </section>
   </div>
 
-  <!-- ══ SUBSCRIPTION ACCESS GATE ══ -->
   <div class="subscription-backdrop" id="subscriptionBackdrop" hidden>
     <section class="subscription-card" role="dialog" aria-modal="true" aria-labelledby="subscriptionTitle">
       <h2 id="subscriptionTitle">Subscription required</h2>
@@ -970,7 +892,6 @@
     </section>
   </div>
 
-  <!-- ══ ACCOUNT AUTH ══ -->
   <div class="auth-backdrop" id="authBackdrop" hidden>
     <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <div class="auth-head">
@@ -1012,7 +933,6 @@
     <button class="logout-btn" id="logoutBtn" type="button">Sign out</button>
   </div>
 
-  <!-- ══ PASSWORD RESET / CHANGE PASSWORD ══ -->
   <div class="auth-backdrop" id="passwordBackdrop" hidden>
     <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="passwordTitle">
       <div class="auth-head">
@@ -1033,8 +953,6 @@
     </section>
   </div>
 
-
-  <!-- ══ CUSTOM SITE DIALOG ══ -->
   <div class="site-dialog-backdrop" id="siteDialogBackdrop" hidden>
     <section class="site-dialog-card" id="siteDialogCard" role="dialog" aria-modal="true" aria-labelledby="siteDialogTitle" aria-describedby="siteDialogMessage">
       <div class="site-dialog-icon" id="siteDialogIcon" aria-hidden="true">✓</div>
@@ -1055,9 +973,7 @@
       "kashish_ramnani@yahoo.com",
       "davidwaller743@gmail.com"
     ];
-    const SUBSCRIPTION_URL = ""; // Add your real checkout URL here when ready.
-    // Password-reset emails must always return users to the live HomeoHelp site,
-    // never to localhost or another development machine.
+    const SUBSCRIPTION_URL = "";
     const APP_URL = "https://homeo-help.vercel.app";
     let authClient = null;
     let currentUser = null;
@@ -1068,9 +984,6 @@
       return AUTHORIZED_EMAILS.includes(email);
     }
 
-    // Animated show/hide for overlay elements (auth modal, subscription
-    // modal, account panel) — keeps them in the DOM through the transition
-    // instead of snapping via [hidden].
     function openOverlay(el) {
       el.hidden = false;
       requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("open")));
@@ -1085,7 +998,6 @@
       document.querySelector(".app")?.classList.toggle("auth-locked", !authorized);
       if (!currentUser) {
         closeOverlay(els.subscriptionBackdrop);
-        // No guest access: keep the authentication dialog open until a user signs in.
         if (authConfigured && !els.authBackdrop.classList.contains("open")) openAuth("login");
         return;
       }
@@ -1124,9 +1036,6 @@
         return [];
       } catch { return []; }
     }
-    // ── Supabase chat sync ──
-    // Source of truth once signed in; localStorage remains an instant local
-    // cache so the UI has something to show before the network round trip.
     async function loadChatsFromSupabase() {
       if (!authClient || !currentUser) return null;
       const { data, error } = await authClient
@@ -1294,7 +1203,7 @@
       els.logoutBtn.textContent = currentUser ? "Sign out" : "Close";
     }
     async function switchToUserChats() {
-      state.chats = loadChats(); // instant local cache while the network call is in flight
+      state.chats = loadChats();
       state.activeChatId = null;
       state.messages = [];
       els.input.value = "";
@@ -1405,7 +1314,6 @@
       window.setTimeout(() => els.siteDialogOk.focus(), 180);
     }
 
-
     function openPasswordModal(mode="change") {
       if (!authClient) {
         setAuthMessage("Account service is not configured yet.", "error");
@@ -1435,9 +1343,6 @@
       els.forgotPasswordBtn.disabled = true;
       setAuthMessage("Sending password reset email…");
       try {
-        // IMPORTANT: use the production URL, not window.location.origin.
-        // This prevents reset emails generated during local development from
-        // pointing users to localhost.
         const { error } = await authClient.auth.resetPasswordForEmail(email, {
           redirectTo: APP_URL
         });
@@ -1537,7 +1442,6 @@
       els.input.value = "";
       autosize();
       showError("");
-      // Go straight to chat shell with greeting — skip hero
       els.hero.classList.add("hidden");
       els.shell.classList.add("empty");
       els.content.classList.remove("home-active");
@@ -1546,7 +1450,6 @@
       renderMessages();
       els.sidebar.classList.remove("open");
       els.input.focus();
-      // Update placeholder
       els.input.placeholder = "Describe your symptoms...";
     }
     function loadChat(id) {
@@ -1569,16 +1472,13 @@
       persist();
       renderChatList();
     }
-    // ── Custom confirm / prompt dialogs (replaces window.confirm & window.prompt) ──
     function showConfirmDialog({ title = "Are you sure?", message = "", confirmText = "Confirm", cancelText = "Cancel", danger = false, onConfirm }) {
       const backdrop = els.siteDialogBackdrop;
       const card     = els.siteDialogCard;
-      // Temporarily repurpose the site dialog for confirm
       card.classList.toggle("error", danger);
       els.siteDialogIcon.textContent = danger ? "🗑" : "?";
       els.siteDialogTitle.textContent = title;
       els.siteDialogMessage.textContent = message;
-      // Hide the default OK button, inject confirm/cancel row
       els.siteDialogOk.style.display = "none";
       const existingActions = card.querySelector(".confirm-dialog-actions");
       if (existingActions) existingActions.remove();
@@ -1814,7 +1714,6 @@
       const typing = Boolean(els.input.value.trim());
       const hasMessages = state.messages.some(m => m.role === "user" || m.role === "assistant");
       els.content.classList.toggle("typing-active", typing);
-      // Never allow home-active when there are messages — prevents hero flashing on backspace
       if (hasMessages) {
         els.content.classList.remove("home-active");
         els.content.classList.add("chat-active");
@@ -1912,7 +1811,6 @@
       const userMessages = state.messages.filter(m => m.role === "user");
       const hasAny = state.messages.some(m => m.role === "user" || m.role === "assistant");
 
-      // ── Greeting bubble on fresh chat (no messages yet) ──
       if (!hasAny) {
         const greet = document.createElement("div");
         greet.className = "greeting-bubble";
@@ -1939,7 +1837,6 @@
         row.append(bubble, copy);
         els.messages.appendChild(row);
 
-        // ── Tip banner: inject once, right after the very first user message ──
         if (m.role === "user" && userMessages.indexOf(m) === 0) {
           const tip = document.createElement("div");
           tip.className = "tip-banner";
@@ -1961,19 +1858,17 @@
       els.main.classList.toggle("workspace-active", hasAny || Boolean(els.input.value.trim()));
 
       if (scrollToLatestAssistant) {
-        // Scroll so the first assistant bubble after the last user message is at the top
         const rows = els.messages.querySelectorAll(".msg-row");
         let targetRow = null;
         for (let i = rows.length - 1; i >= 0; i--) {
           if (rows[i].classList.contains("assistant")) { targetRow = rows[i]; break; }
         }
         if (targetRow) {
-          // Small rAF delay so layout is painted before we measure
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
               const containerTop = els.messages.getBoundingClientRect().top;
               const rowTop = targetRow.getBoundingClientRect().top;
-              els.messages.scrollTop += (rowTop - containerTop) - 12; // 12px breathing room
+              els.messages.scrollTop += (rowTop - containerTop) - 12;
             });
           });
         }
@@ -1986,7 +1881,6 @@
       const b = document.createElement("div"); b.className = "bubble assistant";
       b.innerHTML = '<span class="typing"><span></span><span></span><span></span></span>';
       row.appendChild(b); els.messages.appendChild(row);
-      // Scroll to show typing indicator at top (user prompt scrolls off)
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           const containerTop = els.messages.getBoundingClientRect().top;
@@ -2014,10 +1908,9 @@
     }
     const ACTIVE_MODEL = "openai/gpt-oss-120b";
 
-    // ── Warning modal (shown once per chat, after first user message) ──
     const warnBackdrop = document.getElementById("warnBackdrop");
     const warnGotIt    = document.getElementById("warnGotIt");
-    let warnShownForChat = null; // tracks which chat id the warning was shown for
+    let warnShownForChat = null;
 
     function showWarnModal() {
       return new Promise(resolve => {
@@ -2051,7 +1944,6 @@
       state.messages.push({ role:"user", content:text });
       persist(); els.input.value = ""; autosize(); renderMessages();
 
-      // Show warning modal after first user message — before AI call
       if (isFirstMessage && warnShownForChat !== state.activeChatId) {
         warnShownForChat = state.activeChatId;
         await showWarnModal();
@@ -2079,7 +1971,7 @@
     }
     document.querySelectorAll("[data-quick]").forEach(btn => btn.addEventListener("click", () => sendMessage(btn.dataset.quick)));
     document.addEventListener("contextmenu", event => {
-      event.preventDefault(); // native right-click menu is disabled everywhere
+      event.preventDefault();
       const row = event.target.closest(".chat-item");
       if (row) showChatMenuFromRow(row);
     });
@@ -2090,27 +1982,18 @@
       if (event.key === "Escape") closeChatMenus();
     });
 
-    // ── Block all source / devtools access ──────────────────────────────────
     (function blockDevTools() {
-      // 1. Kill every keyboard shortcut that opens devtools or view-source
-      const BLOCKED = new Set([
-        "F12","F11","F10","F9","F8","F7","F5"
-      ]);
+      const BLOCKED = new Set(["F12","F11","F10","F9","F8","F7","F5"]);
       document.addEventListener("keydown", function(e) {
-        // F-keys
         if (BLOCKED.has(e.key)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
-        // Ctrl/Cmd combos
         if (e.ctrlKey || e.metaKey) {
           const k = e.key.toLowerCase();
-          // U = view-source, S = save, P = print (can reveal source), Shift+I/J/C = devtools
           if (k === "u" || k === "s" || k === "p") { e.preventDefault(); e.stopImmediatePropagation(); return; }
           if (e.shiftKey && (k === "i" || k === "j" || k === "c")) { e.preventDefault(); e.stopImmediatePropagation(); return; }
         }
-        // Alt+F4 / Cmd+Option+I (Mac devtools)
         if (e.altKey && e.metaKey && e.key.toLowerCase() === "i") { e.preventDefault(); e.stopImmediatePropagation(); return; }
       }, true);
 
-      // 2. Devtools size-detection — redirect away if panel is open
       const THRESHOLD = 160;
       let devOpen = false;
       function checkDevTools() {
@@ -2126,29 +2009,23 @@
       }
       setInterval(checkDevTools, 800);
 
-      // 3. debugger trap — pausing in devtools freezes on this line
       const _trap = function() { };
       setInterval(function() {
         const t0 = performance.now();
         (function() { _trap(); })();
-        // debugger; // intentionally left without "debugger" keyword to avoid self-triggering
       }, 3000);
 
-      // 4. Disable text selection on the whole page so "View Page Source" via
-      //    long-press context menus on mobile is also blocked
       document.addEventListener("selectstart", function(e) {
-        // Allow selection inside inputs and textareas only
         if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
         e.preventDefault();
       });
 
-      // 5. Block drag (draging source files out)
       document.addEventListener("dragstart", function(e) { e.preventDefault(); });
     })();
     window.addEventListener("scroll", () => closeChatMenus(), true);
     window.addEventListener("resize", () => closeChatMenus());
     els.send.addEventListener("click", () => sendMessage());
-    // ── List mode state ──────────────────────────────────────────────────────
+
     let listMode = false;
     let listCounter = 1;
 
@@ -2160,7 +2037,6 @@
         ? "Shift+Enter → next item · Enter → send list · Click ✕ to exit list mode"
         : "Press Enter to send · Shift+Enter for new line";
       if (on) {
-        // Seed the first item if input is empty
         if (!els.input.value.trim()) {
           els.input.value = "1. ";
           autosize();
@@ -2176,11 +2052,9 @@
 
     els.input.addEventListener("keydown", e => {
       if (listMode && e.key === "Enter" && e.shiftKey) {
-        // Shift+Enter in list mode → add next numbered item
         e.preventDefault();
         listCounter++;
         const cur = els.input.value;
-        // Trim trailing space on current line if blank after number
         els.input.value = cur.trimEnd() + "\n" + listCounter + ". ";
         autosize();
         els.input.setSelectionRange(els.input.value.length, els.input.value.length);
@@ -2197,23 +2071,20 @@
       }
     });
 
-    // ── Nudge bar: show when AI asked a question and user starts a new chat ─
     function lastMessageHasQuestion() {
       const msgs = state.messages;
       if (!msgs.length) return false;
       const last = msgs[msgs.length - 1];
       if (last.role !== "assistant") return false;
-      return /\?/.test(last.content); // AI ended with a question
+      return /\?/.test(last.content);
     }
 
     const _origStartNewChat = startNewChat;
-    // Wrap startNewChat to show nudge if AI had a pending question
     function startNewChatWithNudge() {
       const hadQuestion = lastMessageHasQuestion();
       _origStartNewChat();
       if (hadQuestion) {
         els.nudgeBar.classList.add("visible");
-        // Auto-hide after 7 seconds
         clearTimeout(startNewChatWithNudge._timer);
         startNewChatWithNudge._timer = setTimeout(() => {
           els.nudgeBar.classList.remove("visible");
@@ -2222,7 +2093,6 @@
         els.nudgeBar.classList.remove("visible");
       }
     }
-    // Hide nudge when user starts typing in the new chat
     els.input.addEventListener("input", () => {
       if (els.input.value.trim()) els.nudgeBar.classList.remove("visible");
     });
@@ -2267,21 +2137,17 @@
     setSidebarCollapsed(state.sidebarCollapsed);
     renderMessages();
     autosize();
-    // Only play hero animation on the very first ever load (no chats exist at all)
     if (state.chats.length === 0 && !state.activeChatId) {
       playHomecoming();
     } else if (!state.activeChatId) {
-      // Returning user with no active chat — show greeting
       startNewChat();
     }
     updateAccountUI();
-    // Show sign-in immediately. initAuth() will close it automatically if a valid session exists.
     openAuth("login");
     updateAccessGate();
     initAuth();
     handlePasswordRecovery();
 
-    // ── Custom right-click context menu for the textarea ──
     const ctxMenu = document.createElement("div");
     ctxMenu.id = "ctx-menu";
     ctxMenu.setAttribute("role", "menu");
@@ -2307,13 +2173,10 @@
     `;
     document.body.appendChild(ctxMenu);
 
-    function hideCtxMenu() {
-      ctxMenu.classList.remove("visible");
-    }
+    function hideCtxMenu() { ctxMenu.classList.remove("visible"); }
 
     function showCtxMenu(x, y) {
       ctxMenu.classList.remove("visible");
-      // Position — keep inside viewport
       const vw = window.innerWidth, vh = window.innerHeight;
       const mw = 180, mh = 170;
       ctxMenu.style.left = (x + mw > vw ? vw - mw - 8 : x) + "px";
@@ -2338,14 +2201,14 @@
         els.input.focus();
         autosize();
         updateTypingLayout();
-      } catch { /* clipboard permission denied — fallback */ }
+      } catch { }
     });
 
     document.getElementById("ctx-cut").addEventListener("click", async () => {
       hideCtxMenu();
       const start = els.input.selectionStart;
       const end   = els.input.selectionEnd;
-      if (start === end) return; // nothing selected
+      if (start === end) return;
       const selected = els.input.value.slice(start, end);
       try { await navigator.clipboard.writeText(selected); } catch {}
       els.input.value = els.input.value.slice(0, start) + els.input.value.slice(end);
@@ -2367,7 +2230,6 @@
       els.input.select();
     });
 
-    // Close menu on any outside interaction
     document.addEventListener("mousedown", (e) => {
       if (!ctxMenu.contains(e.target)) hideCtxMenu();
     });
